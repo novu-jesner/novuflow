@@ -1,0 +1,37 @@
+<?php
+
+use App\Http\Controllers\ProfileController;
+use Illuminate\Support\Facades\Route;
+
+Route::get('/', function () {
+    return auth()->check() 
+        ? redirect(auth()->user()->dashboardUrl()) 
+        : redirect('/login');
+});
+Route::middleware(['auth'])->group(function () {
+
+     Route::get('/dashboard', function () {
+    return 'DASHBOARD';
+})->middleware('auth');
+
+    Route::get('/super-admin/dashboard', function () {
+        return view('super_admin.dashboard');
+    })->middleware('role:super_admin');
+
+   
+    Route::get('/admin/dashboard', function () {
+        return view('admin.dashboard');
+    })->middleware('role:admin');
+
+   
+    Route::get('/team-lead/dashboard', function () {
+        return view('team_lead.dashboard');
+    })->middleware('role:team_lead');
+
+   
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+require __DIR__.'/auth.php';
