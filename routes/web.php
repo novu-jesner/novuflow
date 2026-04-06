@@ -10,9 +10,9 @@ Route::get('/', function () {
 });
 Route::middleware(['auth'])->group(function () {
 
-     Route::get('/dashboard', function () {
-    return 'DASHBOARD';
-})->middleware('auth');
+ Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware('auth')
+    ->name('dashboard');
 
     Route::get('/super-admin/dashboard', function () {
         return view('super_admin.dashboard');
