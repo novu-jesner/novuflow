@@ -32,5 +32,6 @@
                @yield('content')
             </main>
         </div>
-    </body>
+    </div>
+</body>
 </html>
