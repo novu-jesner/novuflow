@@ -32,22 +32,22 @@
             </label>
         </div>
 
-        <div class="mt-6 flex flex-col items-center justify-center space-y-3 text-center">
-            @if (Route::has('password.request'))
-                <a class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 underline"
-                   href="{{ route('password.request') }}">
-                    {{ __('Forgot your password?') }}
-                </a>
-            @endif
+        <div class="flex items-center justify-end mt-4">
+    @if (Route::has('password.request'))
+        <a class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+           href="{{ route('password.request') }}">
+            {{ __('Forgot your password?') }}
+        </a>
+    @endif
 
-            <x-primary-button class="w-full sm:w-auto">
-                {{ __('Log in') }}
-            </x-primary-button>
+    <x-primary-button>
+        {{ __('Log in') }}
+    </x-primary-button>
 
-            <a class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 underline"
-               href="{{ route('register') }}">
-                {{ __('Don\'t have an account? Register') }}
-            </a>
+    <a class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+       href="{{ route('register') }}">
+        {{ __('Register') }}
+    </a>
         </div>
     </form>
 </x-guest-layout>
