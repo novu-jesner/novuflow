@@ -1,1 +1,1 @@
-<img src="{{ asset('images/novuflow_logo.png') }}" {{ $attributes }} alt="Novuflow Logo">
+<img src="{{ asset('images/novuflow_logo.png') }}" {{ $attributes->merge(['class' => 'main-logo']) }} alt="Novuflow Logo">
