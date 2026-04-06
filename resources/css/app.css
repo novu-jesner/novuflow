@@ -1,3 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.main-logo {
+    @apply h-24 w-auto drop-shadow-lg;
+}
