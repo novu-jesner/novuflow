@@ -14,8 +14,7 @@ class DashboardController extends Controller
     public function index()
 {
     $user = Auth::user();
-    $teams = Team::all(); // or filter per role
-    $selectedTeamId = request()->team_id ?? null;
+
 
     switch ($user->role) {
         case 'super_admin':
