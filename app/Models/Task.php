@@ -11,13 +11,17 @@ class Task extends Model
 
     protected $fillable = [
         'title',
-        'status',
+        'column_id', // Replaced status
         'project_id',
         'assigned_to',
     ];
 
-    // Define relationships if needed
-      public function project()
+    public function column()
+    {
+        return $this->belongsTo(Column::class);
+    }
+
+    public function project()
     {
         return $this->belongsTo(Project::class);
     }
