@@ -29,7 +29,7 @@ Route::middleware(['auth'])->group(function () {
 
    
     Route::get('/team-lead/dashboard', function () {
-        return view('team_lead.dashboard');
+        return view('team_leader.dashboard');
     })->middleware('role:team_lead');
 
    
