@@ -43,6 +43,10 @@ class DashboardController extends Controller
             $view = 'user.dashboard';
     }
 
+    // Temporary fix for undefined variables
+    $teams = [];
+    $selectedTeamId = null;
+
     // Return the view dynamically and include sidebar variables for all roles
     return view($view, compact('stats', 'tasks', 'teams', 'selectedTeamId'));
 }

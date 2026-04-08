@@ -43,5 +43,5 @@ require __DIR__.'/auth.php';
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
 Route::get('/boards', [BoardController::class, 'index'])->name('boards.index');
-Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
+Route::resource('projects', ProjectController::class)->middleware('auth');
 Route::get('/teams', [TeamController::class, 'index'])->name('teams.index');
