@@ -16,6 +16,25 @@ class ProjectController extends Controller
         return back();
     }
 
+    public function show(\App\Models\Project $project)
+    {
+        $project->load(['columns.tasks' => function ($query) {
+            $query->orderBy('created_at'); // or order by position if tasks are ordered
+        }]);
+
+        // If the project has no columns, let's create defaults for convenience.
+        if ($project->columns->isEmpty()) {
+            $project->columns()->createMany([
+                ['name' => 'To Do', 'position' => 1],
+                ['name' => 'In Progress', 'position' => 2],
+                ['name' => 'Done', 'position' => 3],
+            ]);
+            $project->load('columns.tasks');
+        }
+
+        return view('projects.show', compact('project'));
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -28,5 +47,12 @@ class ProjectController extends Controller
         ]);
 
         return back()->with('success', 'Project created successfully.');
+    }
+
+    public function destroy(\App\Models\Project $project)
+    {
+        $project->delete();
+
+        return back()->with('success', 'Project deleted successfully.');
     }
 }

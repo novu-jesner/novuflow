@@ -16,6 +16,11 @@ class Project extends Model
         'team_id',
     ];
 
+    public function columns()
+    {
+        return $this->hasMany(Column::class)->orderBy('position');
+    }
+
     public function tasks()
     {
         return $this->hasMany(Task::class);
