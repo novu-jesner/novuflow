@@ -9,12 +9,16 @@ class Task extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'title',
-        'column_id', // Replaced status
-        'project_id',
-        'assigned_to',
-    ];
+protected $fillable = [
+    'title',
+    'description',
+    'status',
+    'project_id',
+    'assigned_to',
+    'created_by',
+    'priority',
+    'due_date',
+];
 
     public function column()
     {
@@ -30,4 +34,8 @@ class Task extends Model
     {
         return $this->belongsTo(User::class, 'assigned_to');
     }
+    public function assignee()
+{
+    return $this->belongsTo(User::class, 'assigned_to');
+}
 }

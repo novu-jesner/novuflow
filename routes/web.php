@@ -59,3 +59,4 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::get('/teams', [TeamController::class, 'index'])->name('teams.index');
+Route::get('/tasks/{task}', [TaskController::class, 'show'])->name('tasks.show');

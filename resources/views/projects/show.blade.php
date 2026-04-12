@@ -61,6 +61,7 @@
                     class="bg-white dark:bg-gray-700 p-3 rounded shadow-sm cursor-grab border border-gray-200 dark:border-gray-600 hover:border-indigo-400 dark:hover:border-indigo-500 group transition-all"
                     draggable="true" 
                     ondragstart="drag(event)" 
+                    onclick="openTaskDetails(this.getAttribute('data-id'))"
                     data-id="{{ $task->id }}">
                     <div class="flex justify-between items-start gap-2">
                         <p class="text-sm text-gray-800 dark:text-gray-200 font-medium leading-tight">{{ $task->title }}</p>
@@ -78,12 +79,11 @@
 
             <!-- Add Task Form -->
             <div class="p-3 bg-white/30 dark:bg-black/10 border-t border-gray-200 dark:border-gray-700/50 rounded-b-lg cursor-default">
-                <form action="{{ route('tasks.store', $project) }}" method="POST" class="flex gap-2">
-                    @csrf
-                    <input type="hidden" name="column_id" value="{{ $column->id }}">
-                    <input type="text" name="title" placeholder="Add a card..." required class="text-sm w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-1.5 px-2">
-                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-md px-3 py-1.5 text-sm font-medium shadow-sm transition-colors">+</button>
-                </form>
+                
+           <button type="button"
+    onclick="openTaskModal('{{ $column->id }}')">
+    +
+</button>
             </div>
         </div>
         @endforeach
@@ -110,7 +110,148 @@
     </div>
 </div>
 
+
+<!-- TASK MODAL -->
+<div id="taskModal"
+     class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md p-5 shadow-lg">
+
+        <h2 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">
+            Create Task
+        </h2>
+
+      <form id="taskForm" method="POST" action="{{ route('tasks.store', $project) }}">
+    @csrf
+
+    <input type="hidden" name="column_id" id="modal_column_id">
+
+    <!-- TITLE -->
+    <input type="text" name="title" placeholder="Task name" required
+        class="w-full mb-3 rounded-md border-gray-300 dark:bg-gray-700 dark:text-white">
+
+    <!-- DESCRIPTION -->
+    <textarea name="description" placeholder="Description"
+        class="w-full mb-3 rounded-md border-gray-300 dark:bg-gray-700 dark:text-white"></textarea>
+
+    <!-- PRIORITY -->
+    <select name="priority" required
+        class="w-full mb-3 rounded-md border-gray-300 dark:bg-gray-700 dark:text-white">
+        <option value="low">LOW</option>
+        <option value="medium">MEDIUM</option>
+        <option value="high">HIGH</option>
+    </select>
+
+    <!-- DUE DATE -->
+    <input type="date" name="due_date"
+        class="w-full mb-3 rounded-md border-gray-300 dark:bg-gray-700 dark:text-white">
+
+    <!-- ASSIGN -->
+    <select name="assigned_to"
+        class="w-full mb-4 rounded-md border-gray-300 dark:bg-gray-700 dark:text-white">
+        <option value="">Assign to</option>
+        @foreach($users as $user)
+            <option value="{{ $user->id }}">{{ $user->name }}</option>
+        @endforeach
+    </select>
+
+            <!-- Buttons -->
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="closeTaskModal()"
+                    class="px-3 py-1.5 bg-gray-300 rounded-md">
+                    Cancel
+                </button>
+
+                <button type="submit"
+                    class="px-3 py-1.5 bg-indigo-600 text-white rounded-md">
+                    Create
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+
+
+<!-- TASK DETAIL MODAL -->
+<div id="taskDetailModal"
+     class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg w-full max-w-lg p-5">
+
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-semibold text-white">
+                Task Details
+            </h2>
+
+            <button onclick="closeTaskDetails()" class="text-gray-400 hover:text-red-500">
+                ✕
+            </button>
+        </div>
+
+        <div id="taskDetailContent" class="text-sm text-gray-200 space-y-2">
+            Loading...
+        </div>
+
+    </div>
+</div>
+
 <script>
+
+ // -- TASK DETAILS MODAL --
+function openTaskDetails(taskId) {
+    const modal = document.getElementById('taskDetailModal');
+    const content = document.getElementById('taskDetailContent');
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+
+    content.innerHTML = "Loading...";
+
+    fetch(`/tasks/${taskId}`)
+        .then(res => res.json())
+        .then(task => {
+            content.innerHTML = `
+                <div><b>Title:</b> ${task.title}</div>
+                <div><b>Description:</b> ${task.description ?? '-'}</div>
+                <div><b>Priority:</b> ${task.priority ?? '-'}</div>
+                <div><b>Due Date:</b> ${task.due_date ?? '-'}</div>
+                <div><b>Assigned To:</b> ${task.assigned_to_name ?? '-'}</div>
+            `;
+        });
+}
+
+function closeTaskDetails() {
+    const modal = document.getElementById('taskDetailModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+
+ // -- TASK MODAL --
+function openTaskModal(columnId) {
+    const modal = document.getElementById('taskModal');
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+
+    document.getElementById('modal_column_id').value = columnId;
+}
+
+function closeTaskModal() {
+    const modal = document.getElementById('taskModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+
+
+
+
+
+
+
     // -- CARD DRAG AND DROP --
     function allowDrop(ev) {
         if(ev.dataTransfer.types.includes("card")) {
@@ -252,4 +393,5 @@
         }
     }
 </script>
+
 @endsection

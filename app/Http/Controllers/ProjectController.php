@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 
 class ProjectController extends Controller
 {
@@ -31,8 +33,11 @@ class ProjectController extends Controller
             ]);
             $project->load('columns.tasks');
         }
+  // ✅ ADD THIS LINE
+    $users = User::all();
 
-        return view('projects.show', compact('project'));
+    return view('projects.show', compact('project', 'users'));
+     
     }
 
     public function store(Request $request)
@@ -43,7 +48,7 @@ class ProjectController extends Controller
 
         \App\Models\Project::create([
             'name' => $validated['name'],
-            'team_id' => auth()->user()->team_id ?? null,
+            'team_id' => Auth::user()->team_id ?? null,
         ]);
 
         return back()->with('success', 'Project created successfully.');
