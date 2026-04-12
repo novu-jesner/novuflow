@@ -5,23 +5,37 @@ namespace App\Http\Controllers;
 use App\Models\Task;
 use App\Models\Project;
 use Illuminate\Http\Request;
+use App\Models\User;
 
 class TaskController extends Controller
 {
-    public function store(Request $request, Project $project)
-    {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'column_id' => 'required|exists:columns,id',
-        ]);
+   public function store(Request $request, Project $project)
+{
+    $validated = $request->validate([
+        'title' => 'required|string|max:255',
+        'description' => 'nullable|string',
+        'priority' => 'required|in:low,medium,high',
+        'due_date' => 'nullable|date',
+        'assigned_to' => 'nullable|exists:users,id',
+        'column_id' => 'required|exists:columns,id',
+    ]);
 
-        $project->tasks()->create([
-            'title' => $validated['title'],
-            'column_id' => $validated['column_id'],
-        ]);
+ 
 
-        return back();
-    }
+$column = \App\Models\Column::findOrFail($validated['column_id']);
+
+$column->tasks()->create([
+    'title' => $validated['title'],
+    'description' => $validated['description'] ?? null,
+    'priority' => $validated['priority'],
+    'due_date' => $validated['due_date'] ?? null,
+    'assigned_to' => $validated['assigned_to'] ?? null,
+   
+    'project_id' => $project->id, // ✅ ADD THIS
+]);
+
+  return redirect()->route('projects.show', $project->id);
+}
 
     public function updateStatus(Request $request, Task $task)
     {
@@ -39,4 +53,15 @@ class TaskController extends Controller
         $task->delete();
         return back();
     }
+    public function show(Task $task)
+{
+    return response()->json([
+        'id' => $task->id,
+        'title' => $task->title,
+        'description' => $task->description,
+        'priority' => $task->priority,
+        'due_date' => $task->due_date,
+        'assigned_to_name' => $task->assignee->name ?? null,
+    ]);
+}
 }
