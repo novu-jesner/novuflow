@@ -33,7 +33,7 @@ class ProjectController extends Controller
             ]);
             $project->load('columns.tasks');
         }
-  // ✅ ADD THIS LINE
+ 
     $users = User::all();
 
     return view('projects.show', compact('project', 'users'));
@@ -52,6 +52,17 @@ class ProjectController extends Controller
         ]);
 
         return back()->with('success', 'Project created successfully.');
+    }
+
+    public function update(Request $request, \App\Models\Project $project)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+
+        $project->update(['name' => $validated['name']]);
+
+        return back()->with('success', 'Project updated successfully.');
     }
 
     public function destroy(\App\Models\Project $project)

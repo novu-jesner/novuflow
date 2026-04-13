@@ -36,12 +36,12 @@
         </thead>
         <tbody>
             @forelse($tasks ?? [] as $task)
-            <tr>
-                <td class="border border-gray-300 p-2">{{ $task->title }}</td>
-                <td class="border border-gray-300 p-2">{{ ucfirst($task->status) }}</td>
-                <td class="border border-gray-300 p-2">{{ $task->project?->name ?? 'No Project' }}</td>
-                <td class="border border-gray-300 p-2">{{ $task->assigned?->name ?? 'Unassigned' }}</td>
-            </tr>
+                <tr>
+                	<td class="border border-gray-300 p-2">{{ $task->title }}</td>
+                	<td class="border border-gray-300 p-2">{{ ucfirst($task->status) }}</td>
+                	<td class="border border-gray-300 p-2">{{ $task->project?->name ?? 'No Project' }}</td>
+                	<td class="border border-gray-300 p-2">{{ optional($task->assigned)->name ?? $task->assigned_to ?? 'Unassigned' }}</td>
+                </tr>
             @empty
             <tr>
                 <td class="border border-gray-300 p-2 text-center" colspan="4">No tasks available</td>

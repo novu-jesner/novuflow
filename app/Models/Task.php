@@ -35,7 +35,12 @@ protected $fillable = [
         return $this->belongsTo(User::class, 'assigned_to');
     }
     public function assignee()
-{
-    return $this->belongsTo(User::class, 'assigned_to');
-}
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
 }
