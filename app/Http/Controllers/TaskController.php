@@ -16,7 +16,7 @@ class TaskController extends Controller
         'description' => 'nullable|string',
         'priority' => 'required|in:low,medium,high',
         'due_date' => 'nullable|date',
-        'assigned_to' => 'nullable|exists:users,id',
+        'assigned_to' => 'nullable|string|max:255',
         'column_id' => 'required|exists:columns,id',
     ]);
 
@@ -30,6 +30,7 @@ $column->tasks()->create([
     'priority' => $validated['priority'],
     'due_date' => $validated['due_date'] ?? null,
     'assigned_to' => $validated['assigned_to'] ?? null,
+    'created_by' => auth()->id(),
    
     'project_id' => $project->id, // ✅ ADD THIS
 ]);
@@ -61,7 +62,24 @@ $column->tasks()->create([
         'description' => $task->description,
         'priority' => $task->priority,
         'due_date' => $task->due_date,
-        'assigned_to_name' => $task->assignee->name ?? null,
+        'assigned_to' => $task->assigned_to,
+        'assigned_to_name' => $task->assigned_to, // Backward compatibility for UI
+        'creator_name' => $task->creator->name ?? null,
     ]);
 }
+    
+    public function update(Request $request, Task $task)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'priority' => 'required|in:low,medium,high',
+            'due_date' => 'nullable|date',
+            'assigned_to' => 'nullable|string|max:255',
+        ]);
+
+        $task->update($validated);
+
+        return back();
+    }
 }
