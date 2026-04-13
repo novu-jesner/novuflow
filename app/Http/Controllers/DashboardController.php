@@ -19,27 +19,29 @@ class DashboardController extends Controller
     switch ($user->role) {
         case 'super_admin':
             $stats = $this->getSuperAdminStats();
-            $tasks = Task::with('project', 'assigned')->get();
+            $tasks = Task::with('project', 'assigned', 'column')->get();
             $view = 'super_admin.dashboard';
             break;
 
         case 'admin':
             $stats = $this->getAdminStats();
-            $tasks = Task::with('project', 'assigned')->get();
-            $view = 'admin.dashboard';
+            $tasks = Task::with('project', 'assigned', 'column')
+                         ->where('team_id', $user->team_id)
+                         ->get();
+            $view = 'super_admin.dashboard';
             break;
 
         case 'team_lead':
             $stats = $this->getTeamLeadStats();
-            $tasks = Task::with('project', 'assigned')
+            $tasks = Task::with('project', 'assigned', 'column')
                          ->where('team_id', $user->team_id)
                          ->get();
-            $view = 'team_lead.dashboard';
+            $view = 'super_admin.dashboard';
             break;
 
         default:
             $stats = $this->getUserStats();
-            $tasks = Task::where('assigned_to', $user->id)->get();
+            $tasks = Task::with('project', 'assigned', 'column')->where('assigned_to', $user->id)->get();
             $view = 'user.dashboard';
     }
 
@@ -57,24 +59,45 @@ class DashboardController extends Controller
             'total_users' => User::count(),
             'total_projects' => Project::count(),
             'total_tasks' => Task::count(),
+            'tasks_by_status' => Task::leftJoin('columns', 'tasks.column_id', '=', 'columns.id')
+                ->selectRaw("COALESCE(columns.name, 'Unassigned') as status_name, count(*) as count")
+                ->groupBy('status_name')
+                ->pluck('count', 'status_name')
+                ->toArray(),
         ];
     }
 
     private function getAdminStats()
     {
+        $teamId = Auth::user()->team_id;
+
         return [
-            'team_members' => User::where('team_id', Auth::user()->team_id)->count(),
-            'projects' => Project::where('team_id', Auth::user()->team_id)->count(),
-            'tasks' => Task::where('team_id', Auth::user()->team_id)->count(),
+            'total_users' => User::where('team_id', $teamId)->count(),
+            'total_projects' => Project::where('team_id', $teamId)->count(),
+            'total_tasks' => Task::where('team_id', $teamId)->count(),
+            'tasks_by_status' => Task::where('team_id', $teamId)
+                ->leftJoin('columns', 'tasks.column_id', '=', 'columns.id')
+                ->selectRaw("COALESCE(columns.name, 'Unassigned') as status_name, count(*) as count")
+                ->groupBy('status_name')
+                ->pluck('count', 'status_name')
+                ->toArray(),
         ];
     }
 
     private function getTeamLeadStats()
     {
+        $teamId = Auth::user()->team_id;
+
         return [
-            'team_members' => User::where('team_id', Auth::user()->team_id)->count(),
-            'projects' => Project::where('team_id', Auth::user()->team_id)->count(),
-            'tasks' => Task::where('team_id', Auth::user()->team_id)->count(),
+            'total_users' => User::where('team_id', $teamId)->count(),
+            'total_projects' => Project::where('team_id', $teamId)->count(),
+            'total_tasks' => Task::where('team_id', $teamId)->count(),
+            'tasks_by_status' => Task::where('team_id', $teamId)
+                ->leftJoin('columns', 'tasks.column_id', '=', 'columns.id')
+                ->selectRaw("COALESCE(columns.name, 'Unassigned') as status_name, count(*) as count")
+                ->groupBy('status_name')
+                ->pluck('count', 'status_name')
+                ->toArray(),
         ];
     }
 

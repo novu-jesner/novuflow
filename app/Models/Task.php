@@ -15,6 +15,8 @@ protected $fillable = [
     'status',
     'project_id',
     'assigned_to',
+    'column_id',
+    'team_id',
     'created_by',
     'priority',
     'due_date',
