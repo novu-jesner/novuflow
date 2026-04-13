@@ -17,33 +17,24 @@ Route::get('/', function () {
 Route::middleware(['auth'])->group(function () {
 
  Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware('auth')
     ->name('dashboard');
+    Route::get('/super-admin/dashboard', [DashboardController::class, 'index'])
+        ->middleware('role:super_admin')
+        ->name('dashboard.super_admin');
 
-    Route::get('/super-admin/dashboard', function () {
-        return view('super_admin.dashboard');
-    })->middleware('role:super_admin');
+    Route::get('/admin/dashboard', [DashboardController::class, 'index'])
+        ->middleware('role:admin')
+        ->name('dashboard.admin');
 
-   
-    Route::get('/admin/dashboard', function () {
-        return view('admin.dashboard');
-    })->middleware('role:admin');
-
-   
-    Route::get('/team-lead/dashboard', function () {
-        return view('team_leader.dashboard');
-    })->middleware('role:team_lead');
-
-   
+    Route::get('/team-lead/dashboard', [DashboardController::class, 'index'])
+        ->middleware('role:team_lead')
+        ->name('dashboard.team_lead');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
 require __DIR__.'/auth.php';
-
-
-Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
 Route::get('/boards', [BoardController::class, 'index'])->name('boards.index');
 Route::resource('projects', ProjectController::class)->middleware('auth');
 

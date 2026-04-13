@@ -43,7 +43,7 @@
                 @foreach($tasks as $task)
                 <tr>
                     <td class="border border-gray-300 p-2">{{ $task->title }}</td>
-                    <td class="border border-gray-300 p-2">{{ ucfirst($task->status) }}</td>
+                    <td class="border border-gray-300 p-2">{{ optional($task->column)->name ?? 'Unassigned' }}</td>
                     <td class="border border-gray-300 p-2">{{ $task->project?->name }}</td>
                     <td class="border border-gray-300 p-2">{{ optional($task->assigned)->name ?? $task->assigned_to ?? 'Unassigned' }}</td>
                 </tr>
