@@ -21,8 +21,13 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         \Illuminate\Support\Facades\View::composer('layouts.app', function ($view) {
-            // For simple implementation, fetch all projects. In a real world scenario, this might be scoped by user.
-            $view->with('sidebarProjects', \App\Models\Project::latest()->get());
+            $projectsQuery = \App\Models\Project::latest();
+            
+            if (auth()->check() && auth()->user()->role === 'team_lead') {
+                $projectsQuery->where('user_id', auth()->id());
+            }
+
+            $view->with('sidebarProjects', $projectsQuery->get());
         });
     }
 }

@@ -49,6 +49,7 @@ class ProjectController extends Controller
         \App\Models\Project::create([
             'name' => $validated['name'],
             'team_id' => Auth::user()->team_id ?? null,
+            'user_id' => Auth::id(),
         ]);
 
         return back()->with('success', 'Project created successfully.');

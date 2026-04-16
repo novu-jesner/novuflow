@@ -14,6 +14,7 @@ class Project extends Model
         'name',
         'description',
         'team_id',
+        'user_id',
     ];
 
     public function columns()
@@ -24,5 +25,10 @@ class Project extends Model
     public function tasks()
     {
         return $this->hasMany(Task::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }
