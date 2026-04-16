@@ -63,7 +63,7 @@ $column->tasks()->create([
         'priority' => $task->priority,
         'due_date' => $task->due_date,
         'assigned_to' => $task->assigned_to,
-        'assigned_to_name' => $task->assigned_to, // Backward compatibility for UI
+        'assigned_to_name' => $task->assigned ? $task->assigned->name : ($task->assigned_to ?? null), // prefer actual user name when available
         'creator_name' => $task->creator->name ?? null,
     ]);
 }

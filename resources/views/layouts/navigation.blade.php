@@ -21,7 +21,9 @@
                     <!-- Moon icon (shown in light mode) -->
                     <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.293 13.293a8 8 0 11-10.586-10.586 8 8 0 0010.586 10.586z"/></svg>
                     <!-- Sun icon (shown in dark mode) -->
-                    <svg id="theme-toggle-light-icon" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4.22 1.47a1 1 0 01.097 1.407l-.708.708a1 1 0 11-1.414-1.414l.708-.708zM18 9a1 1 0 110 2h-1a1 1 0 110-2h1zM5.636 4.222a1 1 0 011.414 0l.708.708a1 1 0 11-1.414 1.414l-.708-.708z"/></svg>
+                    <svg id="theme-toggle-light-icon" class="w-5 h-5 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2m0 14v2M5.22 5.22l1.42 1.42M17.36 17.36l1.42 1.42M3 12h2m14 0h2M5.22 18.78l1.42-1.42M17.36 6.64l1.42-1.42M12 8a4 4 0 100 8 4 4 0 000-8z"/>
+</svg>
                 </button>
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">

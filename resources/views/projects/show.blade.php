@@ -60,20 +60,65 @@
                 
                 @foreach($column->tasks as $task)
                 <div class="bg-white dark:bg-gray-700 p-4 rounded-xl shadow-sm border border-gray-200/80 dark:border-gray-600 cursor-grab hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-md hover:-translate-y-0.5 group transition-all duration-200"
-                    draggable="true" 
-                    ondragstart="drag(event)" 
-                    onclick="openTaskDetails(this.getAttribute('data-id'))"
+                    draggable="true"
+                    ondragstart="drag(event)"
+                    onclick="openTaskView(this.getAttribute('data-id'))"
                     data-id="{{ $task->id }}">
+
+                    @php
+                        $priority = $task->priority ?? 'low';
+                        $isDue = false;
+                        if ($task->due_date) {
+                            try {
+                                $due = \Carbon\Carbon::parse($task->due_date)->startOfDay();
+                                $today = \Carbon\Carbon::today();
+                                if ($due->lte($today)) { $isDue = true; }
+                            } catch (\Exception $e) { $isDue = false; }
+                        }
+                        // Priority badge color depends only on priority.
+                        $priorityClass = $priority === 'high'
+                            ? 'bg-red-100 text-red-800 dark:bg-red-800/30 dark:text-red-200'
+                            : ($priority === 'medium'
+                                ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800/30 dark:text-yellow-200'
+                                : 'bg-green-100 text-green-800 dark:bg-green-800/30 dark:text-green-200');
+                        // Dot color follows priority; due state shows a subtle ring instead.
+                        $priorityDotClass = $priority === 'high' ? 'bg-red-600' : ($priority === 'medium' ? 'bg-yellow-500' : 'bg-green-600');
+                    @endphp
+
                     <div class="flex justify-between items-start gap-2">
-                        <p class="text-sm text-gray-800 dark:text-gray-200 font-medium leading-snug">{{ $task->title }}</p>
-                        <form action="{{ route('tasks.destroy', $task) }}" method="POST" onsubmit="return confirm('Delete this card?');">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="opacity-0 group-hover:opacity-100 p-1 mt-0.5 rounded text-gray-400 hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-600 transition-all focus:outline-none" title="Delete Task" @click.stop>
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-start gap-2">
+                                <span class="flex-shrink-0 mt-1 w-2.5 h-2.5 rounded-full {{ $priorityDotClass }} {{ $isDue ? 'ring-2 ring-red-400/30' : '' }}"></span>
+                                <p class="text-sm text-gray-800 dark:text-gray-200 font-medium leading-snug truncate">{{ $task->title }}</p>
+                            </div>
+
+                            @if($task->description)
+                                <p class="mt-2 text-xs text-gray-600 dark:text-gray-400 leading-relaxed truncate">{{ $task->description }}</p>
+                            @endif
+
+                            <div class="mt-3 flex items-center gap-3 text-xs">
+                                @if($task->due_date)
+                                    <span class="px-2 py-1 rounded-md {{ $isDue ? 'bg-red-50 text-red-800 dark:bg-red-800/20 dark:text-red-200' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' }}">Due: {{ \Carbon\Carbon::parse($task->due_date)->format('M j, Y') }}</span>
+                                @endif
+                                <span class="px-2 py-1 rounded-md {{ $priorityClass }}">Priority: {{ ucfirst($priority) }}</span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center">
+                            <button type="button" onclick="event.stopPropagation(); openTaskDetails('{{ $task->id }}')" class="opacity-0 group-hover:opacity-100 p-1 mt-0.5 mr-1 rounded text-gray-400 hover:text-indigo-500 hover:bg-gray-100 dark:hover:bg-gray-600 transition-all focus:outline-none" title="Edit Task">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 11l6-6 3 3-6 6H9v-3z"></path></svg>
                             </button>
-                        </form>
+
+                            <form action="{{ route('tasks.destroy', $task) }}" method="POST" onsubmit="return confirm('Delete this card?');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="opacity-0 group-hover:opacity-100 p-1 mt-0.5 rounded text-gray-400 hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-600 transition-all focus:outline-none" title="Delete Task" @click.stop>
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                            </form>
+                        </div>
                     </div>
+
                     @if($task->assignee || $task->assigned_to)
                     <div class="mt-2.5 flex items-center justify-between">
                         <div class="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
@@ -166,7 +211,20 @@
 
             <div>
                 <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Assignee</label>
-                <input type="text" name="assigned_to" placeholder="e.g. Denz Pascua" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-sm px-4 py-2.5 transition-colors">
+                @php
+                    $teamId = auth()->user()->team_id ?? null;
+                    $excludeSelf = (auth()->user()->role ?? null) === 'team_lead' ? auth()->id() : null;
+                    $members = $users->where('team_id', $teamId);
+                    if ($excludeSelf) {
+                        $members = $members->where('id', '!=', $excludeSelf);
+                    }
+                @endphp
+                <select name="assigned_to" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-sm px-4 py-2.5 cursor-pointer transition-colors">
+                    <option value="">Unassigned</option>
+                    @foreach($members as $member)
+                        <option value="{{ $member->id }}">{{ $member->name }}</option>
+                    @endforeach
+                </select>
             </div>
 
             <div class="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
@@ -176,6 +234,52 @@
         </form>
     </div>
 </div>
+
+    <!-- TASK VIEW MODAL -->
+    <div id="taskViewModal" class="fixed inset-0 bg-gray-900/50 dark:bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50 transition-all opacity-0 scale-95 p-4 sm:p-6" style="transition: opacity 0.2s ease-out, transform 0.2s ease-out;">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl w-[70vmin] h-[50vmin] max-w-[95vw] max-h-[95vh] p-6 sm:p-7 shadow-2xl border border-gray-100 dark:border-gray-700 overflow-y-auto custom-scrollbar">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 id="taskViewTitle" class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Task Details</h2>
+                    <div id="taskViewCreator" class="mt-1 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hidden">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        <span id="taskViewCreatorName"></span>
+                    </div>
+                </div>
+                <button type="button" onclick="closeTaskViewModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full p-1.5 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+        
+            <div id="taskViewBody" class="space-y-5">
+                <div>
+                    <p class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Title</p>
+                    <p id="viewTitle" class="w-full rounded-lg text-lg font-medium text-gray-900 dark:text-white"></p>
+                </div>
+
+                <div>
+                    <p class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Description</p>
+                    <p id="viewDescription" class="w-full rounded-lg text-sm text-gray-600 dark:text-gray-400 leading-relaxed"></p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-5">
+                    <div>
+                        <p class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Priority</p>
+                        <p id="viewPriority" class="text-sm text-gray-700 dark:text-gray-300"></p>
+                    </div>
+                    <div>
+                        <p class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Due Date</p>
+                        <p id="viewDueDate" class="text-sm text-gray-700 dark:text-gray-300"></p>
+                    </div>
+                </div>
+
+                <div>
+                    <p class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Assignee</p>
+                    <p id="viewAssignedTo" class="text-sm text-gray-700 dark:text-gray-300"></p>
+                </div>
+            </div>
+        </div>
+    </div>
 
 
 
@@ -278,6 +382,65 @@ function allowDrop(ev) {
             target.classList.add('bg-gray-200', 'dark:bg-gray-600/50');
         }
     }
+}
+
+// -- VIEW TASK (read-only) --
+function openTaskView(taskId) {
+    const modal = document.getElementById('taskViewModal');
+    const titleEl = document.getElementById('viewTitle');
+    const descEl = document.getElementById('viewDescription');
+    const priorityEl = document.getElementById('viewPriority');
+    const dueEl = document.getElementById('viewDueDate');
+    const assignedEl = document.getElementById('viewAssignedTo');
+    const creatorEl = document.getElementById('taskViewCreator');
+    const creatorNameEl = document.getElementById('taskViewCreatorName');
+    document.getElementById('taskViewTitle').innerHTML = 'Task Details';
+
+    titleEl.textContent = '';
+    descEl.textContent = '';
+    priorityEl.textContent = '';
+    dueEl.textContent = '';
+    assignedEl.textContent = '';
+    creatorNameEl.textContent = '';
+    creatorEl.classList.add('hidden');
+
+    modal.classList.add('flex');
+    showModal(modal);
+
+    fetch(`/tasks/${taskId}`)
+        .then(res => res.json())
+        .then(task => {
+            titleEl.textContent = task.title || '';
+            descEl.textContent = task.description || '';
+            priorityEl.textContent = task.priority ? task.priority.charAt(0).toUpperCase() + task.priority.slice(1) : '';
+            if (task.due_date) {
+                try {
+                    const parsed = new Date(String(task.due_date).replace(' ', 'T'));
+                    if (!isNaN(parsed)) {
+                        dueEl.textContent = parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    } else {
+                        dueEl.textContent = String(task.due_date).split(' ')[0] || String(task.due_date).split('T')[0];
+                    }
+                } catch (e) {
+                    dueEl.textContent = String(task.due_date).split(' ')[0] || String(task.due_date).split('T')[0];
+                }
+            } else {
+                dueEl.textContent = '';
+            }
+            assignedEl.textContent = task.assigned_to_name || task.assigned_to || '';
+            if (task.creator_name) {
+                creatorNameEl.textContent = task.creator_name;
+                creatorEl.classList.remove('hidden');
+            }
+        }).catch(err => {
+            console.error('Failed to load task details.', err);
+        });
+}
+
+function closeTaskViewModal() {
+    const modal = document.getElementById('taskViewModal');
+    hideModal(modal);
+    setTimeout(() => { modal.classList.remove('flex'); }, 200);
 }
 
 document.querySelectorAll('.task-list').forEach(list => {
@@ -451,4 +614,8 @@ function dropColumn(ev) {
     }
 }
 </script>
+<!-- Tailwind safelist: ensure dynamic priority classes are included in build -->
+<div class="hidden" aria-hidden="true">
+    <span class="bg-green-100 text-green-800 dark:bg-green-800/30 dark:text-green-200 bg-yellow-100 text-yellow-800 dark:bg-yellow-800/30 dark:text-yellow-200 bg-green-600 bg-yellow-500 bg-red-600 bg-red-50 text-red-800"></span>
+</div>
 @endsection

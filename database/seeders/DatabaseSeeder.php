@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
         'email' => 'superadmin@test.com',
         'password' => Hash::make('password'),
         'role' => 'super_admin',
+        'team_id' => null,
     ]);
 
     User::create([
@@ -30,6 +31,7 @@ class DatabaseSeeder extends Seeder
         'email' => 'admin@test.com',
         'password' => Hash::make('password'),
         'role' => 'admin',
+        'team_id' => null,
     ]);
 
     User::create([
@@ -37,6 +39,33 @@ class DatabaseSeeder extends Seeder
         'email' => 'teamlead@test.com',
         'password' => Hash::make('password'),
         'role' => 'team_lead',
+        'team_id' => 1,
+    ]);
+
+    // Example team member for team 1
+    User::create([
+        'name' => 'Member One',
+        'email' => 'member1@test.com',
+        'password' => Hash::make('password'),
+        'role' => 'user',
+        'team_id' => 1,
+    ]);
+
+    // Example team 2
+    User::create([
+        'name' => 'Team Lead 2',
+        'email' => 'teamlead2@test.com',
+        'password' => Hash::make('password'),
+        'role' => 'team_lead',
+        'team_id' => 2,
+    ]);
+
+    User::create([
+        'name' => 'Member Two',
+        'email' => 'member2@test.com',
+        'password' => Hash::make('password'),
+        'role' => 'user',
+        'team_id' => 2,
     ]);
     }
 }
