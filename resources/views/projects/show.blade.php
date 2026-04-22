@@ -1,11 +1,65 @@
      @extends('layouts.app')
 
 @section('content')
+<style>
+    /* Manual Dark Mode Overrides for Task Modal */
+    .dark #taskViewModal .bg-white, 
+    .dark #taskModal .bg-white {
+        background-color: #1f2937 !important; /* gray-800 */
+        color: #f9fafb !important; /* gray-50 */
+    }
+    
+    .dark #viewDescription,
+    .dark .comment-item,
+    .dark #editCommentsList div {
+        background-color: #374151 !important; /* gray-700 */
+        color: #d1d5db !important; /* gray-300 */
+        border-color: #4b5563 !important; /* gray-600 */
+    }
+
+    .dark #taskViewModal h2, 
+    .dark #taskViewModal h3,
+    .dark #taskModal h2,
+    .dark #taskModal h3,
+    .dark #viewTitle {
+        color: #ffffff !important;
+    }
+
+    .dark .text-gray-400, .dark .text-gray-500 {
+        color: #9ca3af !important; /* gray-400 */
+    }
+
+    .dark #commentForm textarea {
+        background-color: #374151 !important;
+        color: white !important;
+        border-color: #4b5563 !important;
+    }
+
+    /* Badge Dark Mode Overrides */
+    .dark .bg-red-100, .dark .bg-red-50 { 
+        background-color: rgba(153, 27, 27, 0.4) !important; 
+        color: #fecaca !important; 
+    }
+    .dark .bg-yellow-100 { 
+        background-color: rgba(133, 77, 14, 0.4) !important; 
+        color: #fef08a !important; 
+    }
+    .dark .bg-green-100 { 
+        background-color: rgba(6, 78, 59, 0.4) !important; 
+        color: #a7f3d0 !important; 
+    }
+    .dark .bg-gray-100, .dark .bg-gray-800 { 
+        background-color: #374151 !important; 
+        color: #d1d5db !important; 
+    }
+</style>
 <div class="h-full flex flex-col" x-data="{ editingColumn: null, managingMembers: false }">
     <!-- Header -->
     <div class="mb-8 flex justify-between items-end shrink-0">
         <div>
+        <div>
             <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{{ $project->name }}</h1>
+        </div>
             @if(count($projectMemberIds) > 0)
             <div class="mt-2 flex items-center gap-2 flex-wrap">
                 <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Members:</span>
@@ -173,6 +227,7 @@
                             </div>
                         </div>
 
+                        @if(!Auth::guard('member')->check())
                         <div class="flex items-center">
                             <button type="button" onclick="event.stopPropagation(); openTaskDetails('{{ $task->id }}')" class="opacity-0 group-hover:opacity-100 p-1 mt-0.5 mr-1 rounded text-gray-400 hover:text-indigo-500 hover:bg-gray-100 dark:hover:bg-gray-600 transition-all focus:outline-none" title="Edit Task">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 11l6-6 3 3-6 6H9v-3z"></path></svg>
@@ -186,16 +241,28 @@
                                 </button>
                             </form>
                         </div>
+                        @endif
                     </div>
 
-                    @if($task->assignee || $task->assigned_to)
-                    <div class="mt-2.5 flex items-center justify-between">
-                        <div class="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+                    <div class="mt-2.5 flex items-center justify-between border-t border-gray-50 dark:border-gray-600/50 pt-2">
+                        <!-- Assignee -->
+                        @if($task->assignee || $task->assigned_to)
+                        <div class="flex items-center gap-1.5 text-[10px] font-medium text-gray-500 dark:text-gray-400">
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                             <span>{{ optional($task->assignee)->name ?? $task->assigned_to }}</span>
                         </div>
+                        @else
+                        <div></div>
+                        @endif
+
+                        <!-- Creator -->
+                        @php
+                            $creatorName = $task->creator->name ?? ($task->memberCreator->name ?? 'System');
+                        @endphp
+                        <div class="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500 italic">
+                            <span>By: {{ $creatorName }}</span>
+                        </div>
                     </div>
-                    @endif
                 </div>
                 @endforeach
             </div>
@@ -294,6 +361,12 @@
                 </select>
             </div>
 
+            <!-- Added Comments to Edit Modal for consistency -->
+            <div id="editModalComments" class="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700 hidden">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-4">Comments</h3>
+                <div id="editCommentsList" class="space-y-3 mb-4 max-h-[200px] overflow-y-auto custom-scrollbar"></div>
+            </div>
+
             <div class="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
                 <button type="button" onclick="closeTaskModal()" class="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors shadow-sm">Cancel</button>
                 <button type="submit" id="taskSubmitBtn" class="px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors shadow-sm">Add</button>
@@ -304,7 +377,7 @@
 
     <!-- TASK VIEW MODAL -->
     <div id="taskViewModal" class="fixed inset-0 bg-gray-900/50 dark:bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50 transition-all opacity-0 scale-95 p-4 sm:p-6" style="transition: opacity 0.2s ease-out, transform 0.2s ease-out;">
-        <div class="bg-white dark:bg-gray-800 rounded-2xl w-[70vmin] h-[50vmin] max-w-[95vw] max-h-[95vh] p-6 sm:p-7 shadow-2xl border border-gray-100 dark:border-gray-700 overflow-y-auto custom-scrollbar">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl w-[1000px] max-w-[95vw] p-6 sm:p-7 shadow-2xl border border-gray-100 dark:border-gray-700 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div class="flex justify-between items-center mb-6">
                 <div>
                     <h2 id="taskViewTitle" class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Task Details</h2>
@@ -320,29 +393,55 @@
         
             <div id="taskViewBody" class="space-y-5">
                 <div>
-                    <p class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Title</p>
-                    <p id="viewTitle" class="w-full rounded-lg text-lg font-medium text-gray-900 dark:text-white"></p>
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Title</label>
+                    <p id="viewTitle" class="w-full text-lg font-bold text-gray-900 dark:text-white"></p>
                 </div>
 
                 <div>
-                    <p class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Description</p>
-                    <p id="viewDescription" class="w-full rounded-lg text-sm text-gray-600 dark:text-gray-400 leading-relaxed"></p>
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Description</label>
+                    <p id="viewDescription" class="w-full rounded-lg text-sm text-gray-600 dark:text-gray-400 leading-relaxed bg-gray-50 dark:bg-gray-700/30 p-3"></p>
                 </div>
 
                 <div class="grid grid-cols-2 gap-5">
                     <div>
-                        <p class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Priority</p>
-                        <p id="viewPriority" class="text-sm text-gray-700 dark:text-gray-300"></p>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Priority</label>
+                        <p id="viewPriority" class="text-sm font-medium text-gray-700 dark:text-gray-200"></p>
                     </div>
                     <div>
-                        <p class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Due Date</p>
-                        <p id="viewDueDate" class="text-sm text-gray-700 dark:text-gray-300"></p>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Due Date</label>
+                        <p id="viewDueDate" class="text-sm font-medium text-gray-700 dark:text-gray-200"></p>
                     </div>
                 </div>
 
                 <div>
-                    <p class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Assignee</p>
-                    <p id="viewAssignedTo" class="text-sm text-gray-700 dark:text-gray-300"></p>
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Assignee</label>
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-[10px] font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        </div>
+                        <p id="viewAssignedTo" class="text-sm font-medium text-gray-700 dark:text-gray-200"></p>
+                    </div>
+                </div>
+
+                <!-- Comments Section (Bottom Just like Edit Modal) -->
+                <div class="mt-8 pt-8 border-t border-gray-100 dark:border-gray-700">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-4">Comments</label>
+                    
+                    <div id="commentsList" class="space-y-3 mb-6 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                        <!-- Comments will be rendered here -->
+                    </div>
+
+                    <form id="commentForm" method="POST" action="" class="mt-6">
+                        @csrf
+                        <div class="space-y-3">
+                            <textarea name="content" required placeholder="Add a comment..." rows="3" class="w-full rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-sm px-4 py-3 resize-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500"></textarea>
+                            <div class="flex justify-end">
+                                <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm transition-all shadow-md hover:shadow-lg active:scale-[0.98]">
+                                    Post Comment
+                                </button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -374,6 +473,8 @@ function openTaskDetails(taskId) {
     const modal = document.getElementById('taskModal');
     const form = document.getElementById('taskForm');
     const methodContainer = document.getElementById('methodContainer');
+    const editCommentsSection = document.getElementById('editModalComments');
+    const editCommentsList = document.getElementById('editCommentsList');
     
     document.getElementById('taskModalTitle').innerHTML = 'Edit Task';
     document.getElementById('taskSubmitBtn').innerHTML = 'Save';
@@ -398,15 +499,30 @@ function openTaskDetails(taskId) {
                 form.elements['due_date'].value = '';
             }
             form.elements['assigned_to'].value = task.assigned_to || '';
-                    const creatorEl = document.getElementById('taskCreator');
-                    const creatorNameEl = document.getElementById('taskCreatorName');
-                    if (task.creator_name) {
-                        creatorNameEl.textContent = task.creator_name;
-                        creatorEl.classList.remove('hidden');
-                    } else {
-                        creatorNameEl.textContent = '';
-                        creatorEl.classList.add('hidden');
-                    }
+            
+            // Show comments in Edit modal
+            if (task.comments && task.comments.length > 0) {
+                editCommentsSection.classList.remove('hidden');
+                editCommentsList.innerHTML = '';
+                task.comments.forEach(comment => {
+                    const div = document.createElement('div');
+                    div.className = 'bg-gray-100 dark:bg-gray-700/50 p-2 rounded-lg text-xs text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600';
+                    div.innerHTML = `<strong class="text-indigo-600 dark:text-indigo-400">${comment.author}:</strong> ${comment.content}`;
+                    editCommentsList.appendChild(div);
+                });
+            } else {
+                editCommentsSection.classList.add('hidden');
+            }
+
+            const creatorEl = document.getElementById('taskCreator');
+            const creatorNameEl = document.getElementById('taskCreatorName');
+            if (task.creator_name) {
+                creatorNameEl.textContent = task.creator_name;
+                creatorEl.classList.remove('hidden');
+            } else {
+                creatorNameEl.textContent = '';
+                creatorEl.classList.add('hidden');
+            }
         }).catch(err => {
             console.error('Failed to load task details.', err);
         });
@@ -461,6 +577,9 @@ function openTaskView(taskId) {
     const assignedEl = document.getElementById('viewAssignedTo');
     const creatorEl = document.getElementById('taskViewCreator');
     const creatorNameEl = document.getElementById('taskViewCreatorName');
+    const commentsList = document.getElementById('commentsList');
+    const commentForm = document.getElementById('commentForm');
+    
     document.getElementById('taskViewTitle').innerHTML = 'Task Details';
 
     titleEl.textContent = '';
@@ -470,6 +589,8 @@ function openTaskView(taskId) {
     assignedEl.textContent = '';
     creatorNameEl.textContent = '';
     creatorEl.classList.add('hidden');
+    commentsList.innerHTML = '<p class="text-xs text-gray-400 italic">Loading comments...</p>';
+    commentForm.action = `/tasks/${taskId}/comments`;
 
     modal.classList.add('flex');
     showModal(modal);
@@ -492,15 +613,34 @@ function openTaskView(taskId) {
                     dueEl.textContent = String(task.due_date).split(' ')[0] || String(task.due_date).split('T')[0];
                 }
             } else {
-                dueEl.textContent = '';
+                dueEl.textContent = 'No due date';
             }
-            assignedEl.textContent = task.assigned_to_name || task.assigned_to || '';
+            assignedEl.textContent = task.assigned_to_name || task.assigned_to || 'Unassigned';
             if (task.creator_name) {
                 creatorNameEl.textContent = task.creator_name;
                 creatorEl.classList.remove('hidden');
             }
+
+            // Render Comments
+            commentsList.innerHTML = '';
+            if (task.comments && task.comments.length > 0) {
+                task.comments.forEach(comment => {
+                    const div = document.createElement('div');
+                    div.className = 'comment-item bg-gray-100 dark:bg-gray-700/50 p-2.5 rounded-lg text-sm text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600';
+                    div.style.marginBottom = '0.75rem';
+                    div.innerHTML = `<strong class="text-indigo-600 dark:text-indigo-400">${comment.author}:</strong> ${comment.content}`;
+                    commentsList.appendChild(div);
+                });
+                // Scroll to bottom
+                setTimeout(() => {
+                    commentsList.scrollTop = commentsList.scrollHeight;
+                }, 100);
+            } else {
+                commentsList.innerHTML = '<p class="text-sm text-gray-400 italic text-center py-4">No comments yet.</p>';
+            }
         }).catch(err => {
             console.error('Failed to load task details.', err);
+            commentsList.innerHTML = '<p class="text-sm text-red-400 italic text-center py-4">Error loading comments.</p>';
         });
 }
 

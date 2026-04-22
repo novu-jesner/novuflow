@@ -31,7 +31,7 @@ class ProjectController extends Controller
         }
 
         $project->load(['columns.tasks' => function ($query) {
-            $query->orderBy('created_at');
+            $query->with(['creator', 'memberCreator'])->orderBy('created_at');
         }]);
 
         // If the project has no columns, let's create defaults for convenience.
@@ -55,6 +55,11 @@ class ProjectController extends Controller
 
     public function syncMembers(Request $request, \App\Models\Project $project)
     {
+        // Only allow leadership roles (User web guard) to sync members
+        if (Auth::guard('member')->check() || !in_array(Auth::guard('web')->user()->role, ['team_lead', 'admin', 'super_admin'])) {
+            abort(403, 'You do not have permission to manage members.');
+        }
+
         $validated = $request->validate([
             'member_ids'   => 'nullable|array',
             'member_ids.*' => 'integer|exists:members,id',
@@ -67,14 +72,18 @@ class ProjectController extends Controller
 
     public function store(Request $request)
     {
+        if (Auth::guard('member')->check()) {
+            abort(403, 'Members cannot create projects.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
         ]);
 
         \App\Models\Project::create([
             'name' => $validated['name'],
-            'team_id' => Auth::user()->team_id ?? null,
-            'user_id' => Auth::id(),
+            'team_id' => Auth::guard('web')->user()->team_id ?? null,
+            'user_id' => Auth::guard('web')->id(),
         ]);
 
         return back()->with('success', 'Project created successfully.');
@@ -82,6 +91,10 @@ class ProjectController extends Controller
 
     public function update(Request $request, \App\Models\Project $project)
     {
+        if (Auth::guard('member')->check()) {
+            abort(403, 'Members cannot edit projects.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
         ]);
@@ -93,6 +106,10 @@ class ProjectController extends Controller
 
     public function destroy(\App\Models\Project $project)
     {
+        if (Auth::guard('member')->check()) {
+            abort(403, 'Members cannot delete projects.');
+        }
+
         $project->delete();
 
         return back()->with('success', 'Project deleted successfully.');

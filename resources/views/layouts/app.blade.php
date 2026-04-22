@@ -78,12 +78,14 @@
                                 Dashboard
                             </a>
                         </li>
+                        @if(Auth::guard('web')->check() && in_array(Auth::guard('web')->user()->role, ['team_lead', 'admin', 'super_admin']))
                         <li>
                             <a href="{{ route('members.index') }}" class="flex items-center px-3 py-2 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
                                 <svg class="w-5 h-5 mr-3 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                                 Members
                             </a>
                         </li>
+                        @endif
                     </ul>
                 </div>
 
@@ -91,9 +93,11 @@
                 <div x-data="{ openAddProject: false }">
                     <div class="flex items-center justify-between px-3 mb-2">
                         <h2 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Projects</h2>
+                        @if(!Auth::guard('member')->check())
                         <button @click="openAddProject = !openAddProject" class="p-1 rounded-md text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="Add Project">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                         </button>
+                        @endif
                     </div>
 
                     <!-- Add Project Inline Form -->
@@ -130,6 +134,7 @@
                             </form>
 
                             <!-- Edit and delete controls -->
+                            @if(!Auth::guard('member')->check())
                             <div class="ml-2 flex items-center gap-1">
                                 <button x-show="!editing" x-cloak type="button" @click.stop="editing = true; $nextTick(() => { $refs['projInput' + {{ $project->id }}].focus() })" class="ml-0 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700/50" title="Edit Project Name">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5h6m-6 4h6M5 7h.01M5 11h.01M5 15h.01M5 19h.01"></path></svg>
@@ -143,6 +148,7 @@
                                     </button>
                                 </form>
                             </div>
+                            @endif
                         </li>
                         @endforeach
                         
