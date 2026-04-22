@@ -34,11 +34,12 @@ protected $fillable = [
 
     public function assigned()
     {
-        return $this->belongsTo(User::class, 'assigned_to');
+        return $this->belongsTo(Member::class, 'assigned_to');
     }
+
     public function assignee()
     {
-        return $this->belongsTo(User::class, 'assigned_to');
+        return $this->belongsTo(Member::class, 'assigned_to');
     }
 
     public function creator()

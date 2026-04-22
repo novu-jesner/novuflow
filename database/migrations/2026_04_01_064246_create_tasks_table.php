@@ -12,7 +12,7 @@ return new class extends Migration {
             $table->text('description')->nullable();
             $table->enum('status', ['todo', 'doing', 'done'])->default('todo');
             $table->foreignId('project_id')->constrained('projects')->onDelete('cascade');
-            $table->foreignId('assigned_to')->nullable()->constrained('users')->onDelete('set null');
+            $table->foreignId('assigned_to')->nullable()->constrained('members')->onDelete('set null');
             $table->timestamps();
         });
     }

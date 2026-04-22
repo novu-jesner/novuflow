@@ -1,12 +1,81 @@
      @extends('layouts.app')
 
 @section('content')
-<div class="h-full flex flex-col" x-data="{ editingColumn: null }">
+<div class="h-full flex flex-col" x-data="{ editingColumn: null, managingMembers: false }">
     <!-- Header -->
     <div class="mb-8 flex justify-between items-end shrink-0">
         <div>
             <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{{ $project->name }}</h1>
-           
+            @if(count($projectMemberIds) > 0)
+            <div class="mt-2 flex items-center gap-2 flex-wrap">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Members:</span>
+                @foreach($project->members as $pm)
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300">
+                        <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>{{ $pm->name }}
+                    </span>
+                @endforeach
+            </div>
+            @endif
+        </div>
+        @if(auth()->guard('web')->check() && in_array(auth()->guard('web')->user()->role, ['team_lead', 'admin', 'super_admin']))
+        <button type="button" @click="managingMembers = true"
+            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            Manage Members
+        </button>
+        @endif
+    </div>
+
+    <!-- Manage Members Modal -->
+    <div x-show="managingMembers" x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         style="background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 w-full max-w-md p-6"
+             @click.away="managingMembers = false">
+            <div class="flex justify-between items-center mb-5">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Manage Project Members</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Select who can be involved in <strong>{{ $project->name }}</strong></p>
+                </div>
+                <button type="button" @click="managingMembers = false" class="p-1.5 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <form action="{{ route('projects.members.sync', $project) }}" method="POST">
+                @csrf
+                @if($members->isEmpty())
+                    <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-6">No team members found.</p>
+                @else
+                    <div class="space-y-2 max-h-72 overflow-y-auto pr-1 custom-scrollbar">
+                        @foreach($members as $member)
+                        <label class="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
+                            <input type="checkbox" name="member_ids[]" value="{{ $member->id }}"
+                                {{ in_array($member->id, $projectMemberIds) ? 'checked' : '' }}
+                                class="w-4 h-4 rounded text-indigo-600 border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:ring-indigo-500 cursor-pointer">
+                            <div class="flex-1 min-w-0">
+                                <span class="block text-sm font-medium text-gray-800 dark:text-gray-200">{{ $member->name }}</span>
+                                @if($member->position)
+                                    <span class="block text-xs text-gray-500 dark:text-gray-400">{{ $member->position }}</span>
+                                @endif
+                            </div>
+                            @if(in_array($member->id, $projectMemberIds))
+                            <span class="text-xs text-indigo-600 dark:text-indigo-400 font-medium">Assigned</span>
+                            @endif
+                        </label>
+                        @endforeach
+                    </div>
+                @endif
+                <div class="flex justify-end gap-3 mt-5 pt-4 border-t border-gray-100 dark:border-gray-700">
+                    <button type="button" @click="managingMembers = false"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition-colors">
+                        Save Members
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -212,16 +281,14 @@
             <div>
                 <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Assignee</label>
                 @php
-                    $teamId = auth()->user()->team_id ?? null;
-                    $excludeSelf = (auth()->user()->role ?? null) === 'team_lead' ? auth()->id() : null;
-                    $members = $users->where('team_id', $teamId);
-                    if ($excludeSelf) {
-                        $members = $members->where('id', '!=', $excludeSelf);
-                    }
+                    // Show only project members if any are assigned; otherwise fall back to all team members
+                    $assignableMembers = count($projectMemberIds) > 0
+                        ? $members->filter(fn($m) => in_array($m->id, $projectMemberIds))
+                        : $members;
                 @endphp
                 <select name="assigned_to" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-sm px-4 py-2.5 cursor-pointer transition-colors">
                     <option value="">Unassigned</option>
-                    @foreach($members as $member)
+                    @foreach($assignableMembers as $member)
                         <option value="{{ $member->id }}">{{ $member->name }}</option>
                     @endforeach
                 </select>

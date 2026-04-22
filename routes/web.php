@@ -7,14 +7,19 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\ColumnController;
+use App\Http\Controllers\MemberController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return auth()->check()
-        ? redirect(auth()->user()->dashboardUrl()) 
-        : redirect('/login');
+    if (auth('web')->check()) {
+        return redirect(auth('web')->user()->dashboardUrl());
+    }
+    if (auth('member')->check()) {
+        return redirect('/dashboard');
+    }
+    return redirect('/login');
 });
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth:web,member'])->group(function () {
 
  Route::get('/dashboard', [DashboardController::class, 'index'])
     ->name('dashboard');
@@ -36,9 +41,10 @@ Route::middleware(['auth'])->group(function () {
 
 require __DIR__.'/auth.php';
 Route::get('/boards', [BoardController::class, 'index'])->name('boards.index');
-Route::resource('projects', ProjectController::class)->middleware('auth');
+Route::resource('projects', ProjectController::class)->middleware('auth:web,member');
+Route::resource('members', MemberController::class)->middleware('auth:web,member');
 
-Route::middleware('auth')->group(function () {
+Route::middleware('auth:web,member')->group(function () {
     Route::post('/projects/{project}/tasks', [TaskController::class, 'store'])->name('tasks.store');
     Route::patch('/tasks/{task}/status', [TaskController::class, 'updateStatus'])->name('tasks.updateStatus');
     Route::patch('/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
@@ -48,6 +54,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/projects/{project}/columns/reorder', [ColumnController::class, 'reorder'])->name('columns.reorder');
     Route::patch('/columns/{column}', [ColumnController::class, 'update'])->name('columns.update');
     Route::delete('/columns/{column}', [ColumnController::class, 'destroy'])->name('columns.destroy');
+
+    Route::post('/projects/{project}/members/sync', [ProjectController::class, 'syncMembers'])->name('projects.members.sync');
 });
 
 Route::get('/teams', [TeamController::class, 'index'])->name('teams.index');
