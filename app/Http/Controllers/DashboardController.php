@@ -12,16 +12,20 @@ use App\Models\Team;
 class DashboardController extends Controller
 {
     public function index()
-{
-    $user = Auth::user();
-
-
-    switch ($user->role) {
-        case 'super_admin':
-            $stats = $this->getSuperAdminStats();
-            $tasks = Task::with('project', 'assigned', 'column')->get();
-            $view = 'super_admin.dashboard';
-            break;
+    {
+        if (Auth::guard('member')->check()) {
+            $user = Auth::guard('member')->user();
+            $stats = $this->getUserStats($user->id); // We'll need to update $this->getUserStats too
+            $tasks = Task::with('project', 'assigned', 'column')->where('assigned_to', $user->id)->get();
+            $view = 'dashboard';
+        } else {
+            $user = Auth::user();
+            switch ($user->role) {
+                case 'super_admin':
+                    $stats = $this->getSuperAdminStats();
+                    $tasks = Task::with('project', 'assigned', 'column')->get();
+                    $view = 'super_admin.dashboard';
+                    break;
 
         case 'admin':
             $stats = $this->getAdminStats();
@@ -40,9 +44,10 @@ class DashboardController extends Controller
             break;
 
         default:
-            $stats = $this->getUserStats();
-            $tasks = Task::with('project', 'assigned', 'column')->where('assigned_to', $user->id)->get();
-            $view = 'user.dashboard';
+            $stats = [];
+            $tasks = [];
+            $view = 'dashboard';
+        }
     }
 
     // Temporary fix for undefined variables
@@ -101,10 +106,10 @@ class DashboardController extends Controller
         ];
     }
 
-    private function getUserStats()
+    private function getUserStats($userId)
     {
         return [
-            'assigned_tasks' => Task::where('assigned_to', Auth::id())->count(),
+            'assigned_tasks' => Task::where('assigned_to', $userId)->count(),
         ];
     }
 }

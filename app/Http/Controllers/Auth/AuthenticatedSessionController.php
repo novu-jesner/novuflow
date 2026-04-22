@@ -28,16 +28,21 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        // Check which guard logged in
+        if (Auth::guard('member')->check()) {
+            return redirect()->intended('/dashboard');
+        }
+
         $user = auth()->user();
 
-        $url = match ($user->role) {
-                'super_admin' => '/super-admin/dashboard',
-                'admin'       => '/admin/dashboard',
-                'team_lead'   => '/team-lead/dashboard',
-                default       => '/dashboard',
-            };
+        $url = match ($user->role ?? null) {
+            'super_admin' => '/super-admin/dashboard',
+            'admin'       => '/admin/dashboard',
+            'team_lead'   => '/team-lead/dashboard',
+            default       => '/dashboard',
+        };
 
-            return redirect()->intended($url);
+        return redirect()->intended($url);
     }
 
     /**
@@ -46,6 +51,7 @@ class AuthenticatedSessionController extends Controller
     public function destroy(Request $request): RedirectResponse
     {
         Auth::guard('web')->logout();
+        Auth::guard('member')->logout();
 
         $request->session()->invalidate();
 
