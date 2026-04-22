@@ -56,6 +56,7 @@ Route::middleware('auth:web,member')->group(function () {
     Route::delete('/columns/{column}', [ColumnController::class, 'destroy'])->name('columns.destroy');
 
     Route::post('/projects/{project}/members/sync', [ProjectController::class, 'syncMembers'])->name('projects.members.sync');
+    Route::post('/tasks/{task}/comments', [\App\Http\Controllers\CommentController::class, 'store'])->name('comments.store');
 });
 
 Route::get('/teams', [TeamController::class, 'index'])->name('teams.index');

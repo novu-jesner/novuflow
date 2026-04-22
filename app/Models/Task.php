@@ -18,6 +18,7 @@ protected $fillable = [
     'column_id',
     'team_id',
     'created_by',
+    'member_id',
     'priority',
     'due_date',
 ];
@@ -45,5 +46,15 @@ protected $fillable = [
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function memberCreator()
+    {
+        return $this->belongsTo(Member::class, 'member_id');
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(Comment::class)->latest();
     }
 }
