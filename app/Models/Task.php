@@ -57,4 +57,9 @@ protected $fillable = [
     {
         return $this->hasMany(Comment::class)->latest();
     }
+  public function activities()
+{
+    return $this->hasMany(\App\Models\TaskActivity::class)->latest();
+}
+
 }

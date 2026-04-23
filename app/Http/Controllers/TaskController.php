@@ -7,6 +7,7 @@ use App\Models\Project;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use App\Models\TaskActivity;
 
 class TaskController extends Controller
 {
@@ -23,31 +24,29 @@ class TaskController extends Controller
 
         $column = \App\Models\Column::findOrFail($validated['column_id']);
 
-        $column->tasks()->create([
-            'title' => $validated['title'],
-            'description' => $validated['description'] ?? null,
-            'priority' => $validated['priority'],
-            'due_date' => $validated['due_date'] ?? null,
-            'assigned_to' => $validated['assigned_to'] ?? null,
-            'created_by' => Auth::guard('web')->id(),
-            'member_id' => Auth::guard('member')->id(),
-            'project_id' => $project->id,
-            'team_id' => Auth::user()->team_id ?? $project->team_id,
-        ]);
+$task = $column->tasks()->create([
+    'title' => $validated['title'],
+    'description' => $validated['description'] ?? null,
+    'priority' => $validated['priority'],
+    'due_date' => $validated['due_date'] ?? null,
+    'assigned_to' => $validated['assigned_to'] ?? null,
 
-        return redirect()->route('projects.show', $project->id);
+    'created_by' => Auth::guard('web')->check() ? Auth::guard('web')->id() : null,
+    'member_id' => Auth::guard('member')->check() ? Auth::guard('member')->id() : null,
+
+    'project_id' => $project->id,
+    'team_id' => Auth::user()->team_id ?? $project->team_id,
+]);
+
+$this->logActivity(
+    $task->id,
+    'created',
+    auth()->user()->name . ' created this task'
+);
+
+return redirect()->route('projects.show', $project->id);
     }
 
-    public function updateStatus(Request $request, Task $task)
-    {
-        $validated = $request->validate([
-            'column_id' => 'required|exists:columns,id',
-        ]);
-
-        $task->update(['column_id' => $validated['column_id']]);
-
-        return response()->json(['success' => true]);
-    }
     
     public function destroy(Task $task)
     {
@@ -58,27 +57,39 @@ class TaskController extends Controller
         $task->delete();
         return back();
     }
-    public function show(Task $task)
-    {
-        return response()->json([
-            'id' => $task->id,
-            'title' => $task->title,
-            'description' => $task->description,
-            'priority' => $task->priority,
-            'due_date' => $task->due_date,
-            'assigned_to' => $task->assigned_to,
-            'assigned_to_name' => $task->assigned ? $task->assigned->name : ($task->assigned_to ?? null),
-            'creator_name' => $task->creator->name ?? ($task->memberCreator->name ?? null),
-            'comments' => $task->comments()->with(['user', 'member'])->get()->map(function($comment) {
-                return [
-                    'id' => $comment->id,
-                    'author' => $comment->authorName(),
-                    'content' => $comment->content,
-                    'date' => $comment->created_at->diffForHumans(),
-                ];
-            }),
-        ]);
-    }
+public function show(Task $task)
+{
+    $task->load(['activities.user', 'comments.user', 'comments.member']);
+
+    return response()->json([
+        'id' => $task->id,
+        'title' => $task->title,
+        'description' => $task->description,
+        'priority' => $task->priority,
+        'due_date' => $task->due_date,
+        'assigned_to' => $task->assigned_to,
+        'assigned_to_name' => $task->assigned ? $task->assigned->name : ($task->assigned_to ?? null),
+        'creator_name' => $task->creator->name ?? ($task->memberCreator->name ?? null),
+
+        'activities' => $task->activities->map(function ($a) {
+            return [
+                'action' => $a->action,
+                'description' => $a->description,
+                'user' => optional($a->user)->name,
+                'date' => $a->created_at->diffForHumans(),
+            ];
+        }),
+
+        'comments' => $task->comments->map(function ($comment) {
+            return [
+                'id' => $comment->id,
+                'author' => $comment->authorName(),
+                'content' => $comment->content,
+                'date' => $comment->created_at->diffForHumans(),
+            ];
+        }),
+    ]);
+}
     
     public function update(Request $request, Task $task)
     {
@@ -98,4 +109,36 @@ class TaskController extends Controller
 
         return back();
     }
+    
+public function updateStatus(Request $request, Task $task)
+{
+    $validated = $request->validate([
+        'column_id' => 'required|exists:columns,id',
+    ]);
+
+    $oldColumn = $task->column->name;
+
+    $newColumn = \App\Models\Column::findOrFail($validated['column_id'])->name;
+
+    $task->update([
+        'column_id' => $validated['column_id']
+    ]);
+
+    $this->logActivity(
+        $task->id,
+        'moved',
+        auth()->user()->name . " moved task from $oldColumn to $newColumn"
+    );
+
+    return response()->json(['success' => true]);
+}
+ private function logActivity($taskId, $action, $description)
+{
+    TaskActivity::create([
+        'task_id' => $taskId,
+        'user_id' => auth()->id(),
+        'action' => $action,
+        'description' => $description,
+    ]);
+}
 }
