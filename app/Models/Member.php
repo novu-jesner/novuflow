@@ -17,6 +17,7 @@ class Member extends Authenticatable
         'password',
         'position',
         'avatar',
+        'is_active',
     ];
 
     /**
@@ -38,6 +39,7 @@ class Member extends Authenticatable
     {
         return [
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
     }
 

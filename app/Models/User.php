@@ -24,6 +24,7 @@ class User extends Authenticatable
         'password',
         'team_id',
         'role',
+        'is_active',
     ];
 
     /**
@@ -46,6 +47,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
     }
     /**
@@ -62,6 +64,7 @@ class User extends Authenticatable
             'super_admin' => '/super-admin/dashboard',
             'admin'       => '/admin/dashboard',
             'team_lead'   => '/team-lead/dashboard',
+            'member'      => '/dashboard',
             default       => '/dashboard',
         };
     }

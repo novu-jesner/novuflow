@@ -42,12 +42,12 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (Auth::guard('web')->attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        if (Auth::guard('web')->attempt(array_merge($this->only('email', 'password'), ['is_active' => true]), $this->boolean('remember'))) {
             RateLimiter::clear($this->throttleKey());
             return;
         }
 
-        if (Auth::guard('member')->attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        if (Auth::guard('member')->attempt(array_merge($this->only('email', 'password'), ['is_active' => true]), $this->boolean('remember'))) {
             RateLimiter::clear($this->throttleKey());
             return;
         }

@@ -39,6 +39,12 @@
                     </x-slot>
 
                     <x-slot name="content">
+                        @if(Auth::guard('web')->check() && Auth::guard('web')->user()->role === 'super_admin')
+                        <x-dropdown-link :href="route('admin.users.index')">
+                            {{ __('User Management') }}
+                        </x-dropdown-link>
+                        @endif
+
                         <x-dropdown-link :href="route('profile.edit')">
                             {{ __('Profile') }}
                         </x-dropdown-link>
@@ -85,6 +91,12 @@
             </div>
 
             <div class="mt-3 space-y-1">
+                @if(Auth::guard('web')->check() && Auth::guard('web')->user()->role === 'super_admin')
+                <x-responsive-nav-link :href="route('admin.users.index')">
+                    {{ __('User Management') }}
+                </x-responsive-nav-link>
+                @endif
+
                 <x-responsive-nav-link :href="route('profile.edit')">
                     {{ __('Profile') }}
                 </x-responsive-nav-link>

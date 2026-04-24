@@ -41,6 +41,14 @@ class DatabaseSeeder extends Seeder
             'team_id' => 1,
         ]);
 
+        User::create([
+            'name' => 'Member User',
+            'email' => 'memberuser@test.com',
+            'password' => Hash::make('password'),
+            'role' => 'member',
+            'team_id' => 1,
+        ]);
+
         // Example team member for team 1 (ONLY IN MEMBERS TABLE)
         Member::create([
             'team_id' => 1,

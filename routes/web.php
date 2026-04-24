@@ -8,6 +8,7 @@ use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\ColumnController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -37,6 +38,12 @@ Route::middleware(['auth:web,member'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Admin User Management
+    Route::middleware(['role:super_admin'])->prefix('admin')->name('admin.')->group(function () {
+        Route::resource('users', UserController::class);
+        Route::post('teams', [UserController::class, 'storeTeam'])->name('teams.store');
+    });
 });
 
 require __DIR__.'/auth.php';
