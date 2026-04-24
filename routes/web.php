@@ -1,37 +1,53 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\TeamController;
 use Illuminate\Support\Facades\Route;
 
+// Authentication Routes
 Route::get('/', function () {
-    return auth()->check() 
-        ? redirect(auth()->user()->dashboardUrl()) 
-        : redirect('/login');
+    return redirect()->route('login');
 });
+
+Route::get('/login', function () {
+    return view('auth.login');
+})->name('login');
+
+Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+Route::get('/register', function () {
+    return view('auth.register');
+})->name('register');
+
+Route::get('/forgot-password', function () {
+    return view('auth.forgot-password');
+})->name('password.request');
+
+// Dashboard Routes (with auth middleware)
 Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
- Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware('auth')
-    ->name('dashboard');
+    // Projects
+    Route::get('/dashboard/projects', [ProjectController::class, 'index'])->name('projects.index');
+    Route::get('/dashboard/projects/{id}', [ProjectController::class, 'show'])->name('projects.show');
 
-    Route::get('/super-admin/dashboard', function () {
-        return view('super_admin.dashboard');
-    })->middleware('role:super_admin');
+    // Kanban Board
+    Route::get('/dashboard/board/{boardId}', [ProjectController::class, 'board'])->name('kanban.board');
 
-   
-    Route::get('/admin/dashboard', function () {
-        return view('admin.dashboard');
-    })->middleware('role:admin');
+    // Team
+    Route::get('/dashboard/team', [TeamController::class, 'index'])->name('team.index');
 
-   
-    Route::get('/team-lead/dashboard', function () {
-        return view('team_lead.dashboard');
-    })->middleware('role:team_lead');
+    // Employee Tasks
+    Route::get('/dashboard/my-tasks', [DashboardController::class, 'myTasks'])->name('employee.tasks');
 
-   
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    // Admin Routes
+    Route::middleware(['role:SuperAdmin,Admin'])->prefix('dashboard/admin')->group(function () {
+        Route::get('/users', [DashboardController::class, 'adminUsers'])->name('admin.users');
+        Route::get('/teams', [TeamController::class, 'adminTeams'])->name('admin.teams');
+        Route::get('/analytics', [DashboardController::class, 'adminAnalytics'])->name('admin.analytics');
+    });
 });
-
-require __DIR__.'/auth.php';

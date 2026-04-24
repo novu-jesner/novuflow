@@ -2,84 +2,57 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\User;
 use App\Models\Project;
 use App\Models\Task;
-use Illuminate\Support\Facades\Auth;
-use App\Models\Team;
+use App\Models\User;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
     public function index()
-{
-    $user = Auth::user();
-    $teams = Team::all(); // or filter per role
-    $selectedTeamId = request()->team_id ?? null;
+    {
+        $user = auth()->user();
+        $projects = Project::with('team')->latest()->take(5)->get();
+        $tasks = Task::with('project', 'assignee')->latest()->take(5)->get();
+        $teamMembers = User::whereHas('teams')->latest()->take(5)->get();
 
-    switch ($user->role) {
-        case 'super_admin':
-            $stats = $this->getSuperAdminStats();
-            $tasks = Task::with('project', 'assigned')->get();
-            $view = 'super_admin.dashboard';
-            break;
-
-        case 'admin':
-            $stats = $this->getAdminStats();
-            $tasks = Task::with('project', 'assigned')->get();
-            $view = 'admin.dashboard';
-            break;
-
-        case 'team_lead':
-            $stats = $this->getTeamLeadStats();
-            $tasks = Task::with('project', 'assigned')
-                         ->where('team_id', $user->team_id)
-                         ->get();
-            $view = 'team_lead.dashboard';
-            break;
-
-        default:
-            $stats = $this->getUserStats();
-            $tasks = Task::where('assigned_to', $user->id)->get();
-            $view = 'user.dashboard';
+        return view('dashboard.index', compact('projects', 'tasks', 'teamMembers'));
     }
 
-    // Return the view dynamically and include sidebar variables for all roles
-    return view($view, compact('stats', 'tasks', 'teams', 'selectedTeamId'));
-}
-
-    private function getSuperAdminStats()
+    public function myTasks()
     {
-        return [
-            'total_users' => User::count(),
-            'total_projects' => Project::count(),
-            'total_tasks' => Task::count(),
-        ];
+        $user = auth()->user();
+        $tasks = Task::where('assigned_to', $user->id)
+            ->with('project', 'assignee')
+            ->latest()
+            ->get();
+
+        $todoTasks = $tasks->where('status', 'To Do');
+        $inProgressTasks = $tasks->where('status', 'In Progress');
+        $reviewTasks = $tasks->where('status', 'Review');
+        $completedTasks = $tasks->where('status', 'Completed');
+
+        return view('employee.tasks', compact('tasks', 'todoTasks', 'inProgressTasks', 'reviewTasks', 'completedTasks'));
     }
 
-    private function getAdminStats()
+    public function adminUsers()
     {
-        return [
-            'team_members' => User::where('team_id', Auth::user()->team_id)->count(),
-            'projects' => Project::where('team_id', Auth::user()->team_id)->count(),
-            'tasks' => Task::where('team_id', Auth::user()->team_id)->count(),
-        ];
+        $users = User::latest()->get();
+        $totalUsers = $users->count();
+        $admins = $users->whereIn('role', ['SuperAdmin', 'Admin'])->count();
+        $teamLeaders = $users->where('role', 'Team Leader')->count();
+        $employees = $users->where('role', 'Employee')->count();
+
+        return view('admin.users', compact('users', 'totalUsers', 'admins', 'teamLeaders', 'employees'));
     }
 
-    private function getTeamLeadStats()
+    public function adminAnalytics()
     {
-        return [
-            'team_members' => User::where('team_id', Auth::user()->team_id)->count(),
-            'projects' => Project::where('team_id', Auth::user()->team_id)->count(),
-            'tasks' => Task::where('team_id', Auth::user()->team_id)->count(),
-        ];
-    }
+        $totalProjects = Project::count();
+        $completedTasks = Task::where('status', 'Completed')->count();
+        $activeTasks = Task::whereIn('status', ['To Do', 'In Progress'])->count();
+        $teamMembers = User::count();
 
-    private function getUserStats()
-    {
-        return [
-            'assigned_tasks' => Task::where('assigned_to', Auth::id())->count(),
-        ];
+        return view('admin.analytics', compact('totalProjects', 'completedTasks', 'activeTasks', 'teamMembers'));
     }
 }
-    

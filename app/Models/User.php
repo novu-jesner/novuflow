@@ -22,6 +22,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
     ];
 
     /**
@@ -46,13 +47,49 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
-    public function dashboardUrl()
-{
-    return match ($this->role) {
-        'super_admin' => '/super-admin/dashboard',
-        'admin'       => '/admin/dashboard',
-        'team_lead'   => '/team-lead/dashboard',
-        default       => '/dashboard',
-    };
-}
+
+    public function teams()
+    {
+        return $this->belongsToMany(Team::class, 'team_user');
+    }
+
+    public function projects()
+    {
+        return $this->belongsToMany(Project::class, 'project_user');
+    }
+
+    public function tasks()
+    {
+        return $this->belongsToMany(Task::class, 'task_user');
+    }
+
+    public function createdProjects()
+    {
+        return $this->hasMany(Project::class, 'created_by');
+    }
+
+    public function assignedTasks()
+    {
+        return $this->hasMany(Task::class, 'assigned_to');
+    }
+
+    public function createdTasks()
+    {
+        return $this->hasMany(Task::class, 'created_by');
+    }
+
+    public function isAdmin()
+    {
+        return in_array($this->role, ['SuperAdmin', 'Admin']);
+    }
+
+    public function isTeamLeader()
+    {
+        return $this->role === 'Team Leader';
+    }
+
+    public function isEmployee()
+    {
+        return $this->role === 'Employee';
+    }
 }
