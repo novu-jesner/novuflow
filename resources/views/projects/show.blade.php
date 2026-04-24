@@ -441,7 +441,18 @@
                                 </button>
                             </div>
                         </div>
+                    
                     </form>
+                    <!-- Activity Log Section -->
+<div class="mt-8 pt-8 border-t border-gray-100 dark:border-gray-700">
+    <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-4">
+        Activity
+    </label>
+
+    <div id="taskActivityList" class="space-y-2 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
+        <p class="text-sm text-gray-400 italic text-center py-3">Loading activity...</p>
+    </div>
+</div>
                 </div>
             </div>
         </div>
@@ -450,6 +461,16 @@
 
 
 <script>
+
+
+function escapeHtml(str) {
+    return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
 function showModal(modalNode) {
     modalNode.classList.remove('hidden');
     // Frame delay to allow display to apply
@@ -566,10 +587,9 @@ function allowDrop(ev) {
         }
     }
 }
-
-// -- VIEW TASK (read-only) --
 function openTaskView(taskId) {
     const modal = document.getElementById('taskViewModal');
+
     const titleEl = document.getElementById('viewTitle');
     const descEl = document.getElementById('viewDescription');
     const priorityEl = document.getElementById('viewPriority');
@@ -579,9 +599,11 @@ function openTaskView(taskId) {
     const creatorNameEl = document.getElementById('taskViewCreatorName');
     const commentsList = document.getElementById('commentsList');
     const commentForm = document.getElementById('commentForm');
-    
+    const activityList = document.getElementById('taskActivityList'); // ✅ include here
+
     document.getElementById('taskViewTitle').innerHTML = 'Task Details';
 
+    // reset UI state
     titleEl.textContent = '';
     descEl.textContent = '';
     priorityEl.textContent = '';
@@ -589,7 +611,10 @@ function openTaskView(taskId) {
     assignedEl.textContent = '';
     creatorNameEl.textContent = '';
     creatorEl.classList.add('hidden');
+
     commentsList.innerHTML = '<p class="text-xs text-gray-400 italic">Loading comments...</p>';
+    activityList.innerHTML = '<p class="text-xs text-gray-400 italic">Loading activity...</p>'; // ✅ important reset
+
     commentForm.action = `/tasks/${taskId}/comments`;
 
     modal.classList.add('flex');
@@ -598,49 +623,97 @@ function openTaskView(taskId) {
     fetch(`/tasks/${taskId}`)
         .then(res => res.json())
         .then(task => {
+
+            /* =========================
+               BASIC TASK DATA
+            ========================== */
             titleEl.textContent = task.title || '';
             descEl.textContent = task.description || '';
-            priorityEl.textContent = task.priority ? task.priority.charAt(0).toUpperCase() + task.priority.slice(1) : '';
-            if (task.due_date) {
-                try {
-                    const parsed = new Date(String(task.due_date).replace(' ', 'T'));
-                    if (!isNaN(parsed)) {
-                        dueEl.textContent = parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                    } else {
-                        dueEl.textContent = String(task.due_date).split(' ')[0] || String(task.due_date).split('T')[0];
-                    }
-                } catch (e) {
-                    dueEl.textContent = String(task.due_date).split(' ')[0] || String(task.due_date).split('T')[0];
-                }
-            } else {
-                dueEl.textContent = 'No due date';
-            }
-            assignedEl.textContent = task.assigned_to_name || task.assigned_to || 'Unassigned';
+            priorityEl.textContent = task.priority
+                ? task.priority.charAt(0).toUpperCase() + task.priority.slice(1)
+                : '';
+
+            dueEl.textContent = task.due_date
+                ? new Date(task.due_date).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                })
+                : 'No due date';
+
+            assignedEl.textContent =
+                task.assigned_to_name || task.assigned_to || 'Unassigned';
+
             if (task.creator_name) {
                 creatorNameEl.textContent = task.creator_name;
                 creatorEl.classList.remove('hidden');
             }
 
-            // Render Comments
+            /* =========================
+               COMMENTS
+            ========================== */
             commentsList.innerHTML = '';
-            if (task.comments && task.comments.length > 0) {
+
+            if (task.comments?.length) {
                 task.comments.forEach(comment => {
                     const div = document.createElement('div');
-                    div.className = 'comment-item bg-gray-100 dark:bg-gray-700/50 p-2.5 rounded-lg text-sm text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600';
-                    div.style.marginBottom = '0.75rem';
-                    div.innerHTML = `<strong class="text-indigo-600 dark:text-indigo-400">${comment.author}:</strong> ${comment.content}`;
+                    div.className =
+                        'comment-item bg-gray-100 dark:bg-gray-700/50 p-2.5 rounded-lg text-sm text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600';
+
+                    // ⚠️ safer than innerHTML injection
+                    div.innerHTML = `
+                        <strong class="text-indigo-600 dark:text-indigo-400">
+                            ${escapeHtml(comment.author)}
+                        </strong>: ${escapeHtml(comment.content)}
+                    `;
+
                     commentsList.appendChild(div);
                 });
-                // Scroll to bottom
+
                 setTimeout(() => {
                     commentsList.scrollTop = commentsList.scrollHeight;
                 }, 100);
             } else {
-                commentsList.innerHTML = '<p class="text-sm text-gray-400 italic text-center py-4">No comments yet.</p>';
+                commentsList.innerHTML =
+                    '<p class="text-sm text-gray-400 italic text-center py-4">No comments yet.</p>';
             }
-        }).catch(err => {
+
+            /* =========================
+               ACTIVITY LOG (FIXED)
+            ========================== */
+            activityList.innerHTML = '';
+
+            if (task.activities?.length) {
+                task.activities.forEach(log => {
+                    const div = document.createElement('div');
+                    div.className =
+                        'text-xs text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700/40 p-2 rounded-lg';
+
+                    div.innerHTML = `
+                        <div class="font-semibold text-indigo-500">
+                            ${escapeHtml(log.action)}
+                        </div>
+                        <div>${escapeHtml(log.description)}</div>
+                        <div class="text-[10px] text-gray-400">
+                            ${escapeHtml(log.date)}
+                        </div>
+                    `;
+
+                    activityList.appendChild(div);
+                });
+            } else {
+                activityList.innerHTML =
+                    '<p class="text-sm text-gray-400 italic text-center py-3">No activity yet</p>';
+            }
+        })
+        .catch(err => {
             console.error('Failed to load task details.', err);
-            commentsList.innerHTML = '<p class="text-sm text-red-400 italic text-center py-4">Error loading comments.</p>';
+
+            commentsList.innerHTML =
+                '<p class="text-sm text-red-400 italic text-center py-4">Error loading comments.</p>';
+
+            activityList.innerHTML =
+                '<p class="text-sm text-red-400 italic text-center py-4">Error loading activity.</p>';
         });
 }
 
