@@ -13,10 +13,17 @@
             </a>
             <div>
                 <div class="flex items-center gap-3">
-                    <h1 class="text-3xl font-semibold text-gray-900">Website Redesign</h1>
-                    <span class="px-2 py-1 text-xs rounded-full text-white bg-blue-500">In Progress</span>
+                    <h1 class="text-3xl font-semibold text-gray-900">{{ $project->name }}</h1>
+                    <span class="px-2 py-1 text-xs rounded-full text-white
+                        @if($project->status == 'Planning') bg-gray-500
+                        @elseif($project->status == 'In Progress') bg-blue-500
+                        @elseif($project->status == 'On Hold') bg-yellow-500
+                        @elseif($project->status == 'Completed') bg-green-500
+                        @else bg-gray-500 @endif">
+                        {{ $project->status }}
+                    </span>
                 </div>
-                <p class="text-gray-600 mt-1">Complete overhaul of company website with new branding</p>
+                <p class="text-gray-600 mt-1">{{ $project->description }}</p>
             </div>
         </div>
         <div class="flex items-center gap-2">
@@ -37,23 +44,23 @@
     <div class="grid gap-4 md:grid-cols-4">
         <div class="bg-white rounded-lg shadow p-6">
             <h3 class="text-sm pb-2">Progress</h3>
-            <div class="text-2xl font-bold">75%</div>
+            <div class="text-2xl font-bold">{{ $project->progress }}%</div>
             <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
-                <div class="bg-gradient-to-r from-[#3f8caf] to-[#54acc8] h-2 rounded-full" style="width: 75%"></div>
+                <div class="bg-gradient-to-r from-[#3f8caf] to-[#54acc8] h-2 rounded-full" style="width: {{ $project->progress }}%"></div>
             </div>
         </div>
         <div class="bg-white rounded-lg shadow p-6">
             <h3 class="text-sm pb-2">Team Members</h3>
-            <div class="text-2xl font-bold">5</div>
+            <div class="text-2xl font-bold">{{ $project->members->count() }}</div>
             <p class="text-xs text-gray-500 mt-1">Active collaborators</p>
         </div>
         <div class="bg-white rounded-lg shadow p-6">
             <h3 class="text-sm pb-2">Start Date</h3>
-            <div class="text-lg font-medium">Jan 1, 2024</div>
+            <div class="text-lg font-medium">{{ $project->start_date->format('M d, Y') }}</div>
         </div>
         <div class="bg-white rounded-lg shadow p-6">
             <h3 class="text-sm pb-2">Due Date</h3>
-            <div class="text-lg font-medium">Dec 31, 2024</div>
+            <div class="text-lg font-medium">{{ $project->due_date->format('M d, Y') }}</div>
         </div>
     </div>
 
@@ -83,7 +90,7 @@
                             </svg>
                             <div>
                                 <div class="text-sm font-medium">Start Date</div>
-                                <div class="text-sm text-gray-600">January 1, 2024</div>
+                                <div class="text-sm text-gray-600">{{ $project->start_date->format('F d, Y') }}</div>
                             </div>
                         </div>
                         <div class="flex items-center gap-3">
@@ -95,11 +102,22 @@
                             </svg>
                             <div>
                                 <div class="text-sm font-medium">Due Date</div>
-                                <div class="text-sm text-gray-600">December 31, 2024</div>
+                                <div class="text-sm text-gray-600">{{ $project->due_date->format('F d, Y') }}</div>
                             </div>
                         </div>
                         <div class="pt-2">
-                            <div class="text-sm text-gray-600">242 days remaining</div>
+                            @php
+                                $daysRemaining = now()->diffInDays($project->due_date, false);
+                            @endphp
+                            <div class="text-sm text-gray-600">
+                                @if($daysRemaining > 0)
+                                    {{ round($daysRemaining) }} days remaining
+                                @elseif($daysRemaining == 0)
+                                    Due today
+                                @else
+                                    {{ round(abs($daysRemaining)) }} days overdue
+                                @endif
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -110,22 +128,28 @@
                     <h2 class="font-semibold">Quick Stats</h2>
                 </div>
                 <div class="p-6">
+                    @php
+                        $totalTasks = $project->tasks->count();
+                        $completedTasks = $project->tasks->where('status', 'Completed')->count();
+                        $inProgressTasks = $project->tasks->where('status', 'In Progress')->count();
+                        $todoTasks = $project->tasks->where('status', 'To Do')->count();
+                    @endphp
                     <div class="space-y-3">
                         <div class="flex justify-between">
                             <span class="text-sm text-gray-600">Total Tasks</span>
-                            <span class="font-medium">42</span>
+                            <span class="font-medium">{{ $totalTasks }}</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-sm text-gray-600">Completed</span>
-                            <span class="font-medium text-green-600">24</span>
+                            <span class="font-medium text-green-600">{{ $completedTasks }}</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-sm text-gray-600">In Progress</span>
-                            <span class="font-medium text-blue-600">12</span>
+                            <span class="font-medium text-blue-600">{{ $inProgressTasks }}</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-sm text-gray-600">To Do</span>
-                            <span class="font-medium text-gray-600">6</span>
+                            <span class="font-medium text-gray-600">{{ $todoTasks }}</span>
                         </div>
                     </div>
                 </div>
@@ -140,31 +164,30 @@
             </div>
             <div class="p-6">
                 <div class="space-y-2">
-                    <template x-for="task in [
-                        { id: '1', title: 'Design homepage mockup', assignedTo: 'John Doe', priority: 'Urgent' },
-                        { id: '2', title: 'Implement authentication', assignedTo: 'Sarah Smith', priority: 'High' },
-                        { id: '3', title: 'Write API documentation', assignedTo: 'Mike Johnson', priority: 'Medium' },
-                        { id: '4', title: 'Setup CI/CD pipeline', assignedTo: 'Alice Brown', priority: 'Low' },
-                    ]" :key="task.id">
+                    @forelse($project->tasks as $task)
                         <div class="flex items-center justify-between p-3 border rounded-md hover:bg-gray-50">
                             <div class="flex items-center gap-3">
-                                <div class="h-2 w-2 rounded-full" :class="{
-                                    'bg-red-500': task.priority === 'Urgent',
-                                    'bg-orange-500': task.priority === 'High',
-                                    'bg-yellow-500': task.priority === 'Medium',
-                                    'bg-green-500': task.priority === 'Low'
-                                }"></div>
+                                <div class="h-2 w-2 rounded-full
+                                    @if($task->priority == 'Urgent') bg-red-500
+                                    @elseif($task->priority == 'High') bg-orange-500
+                                    @elseif($task->priority == 'Medium') bg-yellow-500
+                                    @else bg-green-500 @endif"></div>
                                 <div>
-                                    <div class="font-medium" x-text="task.title"></div>
-                                    <div class="text-sm text-gray-500" x-text="task.assignedTo"></div>
+                                    <div class="font-medium">{{ $task->title }}</div>
+                                    <div class="text-sm text-gray-500">{{ $task->assignee->name ?? 'Unassigned' }}</div>
                                 </div>
                             </div>
-                            <span class="px-2 py-1 text-xs rounded-full" :class="{
-                                'bg-red-100 text-red-700': task.priority === 'Urgent',
-                                'bg-gray-100 text-gray-700': task.priority !== 'Urgent'
-                            }" x-text="task.priority"></span>
+                            <span class="px-2 py-1 text-xs rounded-full
+                                @if($task->priority == 'Urgent') bg-red-100 text-red-700
+                                @elseif($task->priority == 'High') bg-orange-100 text-orange-700
+                                @elseif($task->priority == 'Medium') bg-yellow-100 text-yellow-700
+                                @else bg-green-100 text-green-700 @endif">
+                                {{ $task->priority }}
+                            </span>
                         </div>
-                    </template>
+                    @empty
+                        <div class="text-center text-gray-500 py-4">No tasks yet</div>
+                    @endforelse
                 </div>
             </div>
         </div>
@@ -177,26 +200,26 @@
             </div>
             <div class="p-6">
                 <div class="space-y-4">
-                    <template x-for="member in [
-                        { id: '1', name: 'John Doe', role: 'Developer', tasksCompleted: 12 },
-                        { id: '2', name: 'Sarah Smith', role: 'Designer', tasksCompleted: 8 },
-                        { id: '3', name: 'Mike Johnson', role: 'Developer', tasksCompleted: 15 },
-                        { id: '4', name: 'Alice Brown', role: 'Manager', tasksCompleted: 10 },
-                    ]" :key="member.id">
+                    @forelse($project->members as $member)
+                        @php
+                            $completedTasks = $member->assignedTasks->where('project_id', $project->id)->where('status', 'Completed')->count();
+                        @endphp
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-white" x-text="member.name.charAt(0)"></div>
+                                <div class="w-10 h-10 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-white">{{ substr($member->name, 0, 1) }}</div>
                                 <div>
-                                    <div class="font-medium" x-text="member.name"></div>
-                                    <div class="text-sm text-gray-500" x-text="member.role"></div>
+                                    <div class="font-medium">{{ $member->name }}</div>
+                                    <div class="text-sm text-gray-500">{{ $member->role }}</div>
                                 </div>
                             </div>
                             <div class="text-right">
-                                <div class="text-sm font-medium" x-text="member.tasksCompleted + ' tasks'"></div>
+                                <div class="text-sm font-medium">{{ $completedTasks }} tasks</div>
                                 <div class="text-xs text-gray-500">completed</div>
                             </div>
                         </div>
-                    </template>
+                    @empty
+                        <div class="text-center text-gray-500 py-4">No team members yet</div>
+                    @endforelse
                 </div>
             </div>
         </div>
@@ -209,23 +232,29 @@
             </div>
             <div class="p-6">
                 <div class="space-y-4">
-                    <template x-for="activity in [
-                        { id: '1', userName: 'John Doe', description: 'completed task', taskTitle: 'Update homepage', time: '2 hours ago' },
-                        { id: '2', userName: 'Sarah Smith', description: 'commented on', taskTitle: 'API Integration', time: '4 hours ago' },
-                        { id: '3', userName: 'Mike Johnson', description: 'created new project', taskTitle: 'Q1 Marketing', time: 'Yesterday' },
-                    ]" :key="activity.id">
-                        <div class="flex items-start gap-3">
-                            <div class="w-8 h-8 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-white text-sm" x-text="activity.userName.charAt(0)"></div>
-                            <div class="flex-1">
-                                <p class="text-sm">
-                                    <span class="font-medium" x-text="activity.userName"></span>
-                                    <span x-text="' ' + activity.description + ' '"></span>
-                                    <span class="text-[#3f8caf]" x-text="'\"' + activity.taskTitle + '\"'"></span>
-                                </p>
-                                <p class="text-xs text-gray-500 mt-1" x-text="activity.time"></p>
-                            </div>
+                    @forelse($project->tasks->sortByDesc('updated_at')->take(10) as $task)
+                    @php
+                        $statusChanged = $task->updated_at != $task->created_at;
+                        $timeAgo = $task->updated_at->diffForHumans();
+                    @endphp
+                    <div class="flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-white text-sm">{{ $task->creator ? substr($task->creator->name, 0, 1) : 'S' }}</div>
+                        <div class="flex-1">
+                            <p class="text-sm">
+                                <span class="font-medium">{{ $task->creator->name ?? 'System' }}</span>
+                                @if($statusChanged)
+                                    <span> updated task status to {{ $task->status }} on </span>
+                                @else
+                                    <span> created task </span>
+                                @endif
+                                <span class="text-[#3f8caf]">"{{ $task->title }}"</span>
+                            </p>
+                            <p class="text-xs text-gray-500 mt-1">{{ $timeAgo }}</p>
                         </div>
-                    </template>
+                    </div>
+                    @empty
+                    <div class="text-center py-8 text-gray-500">No recent activity</div>
+                    @endforelse
                 </div>
             </div>
         </div>

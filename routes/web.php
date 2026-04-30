@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TeamController;
 use Illuminate\Support\Facades\Route;
 
@@ -33,10 +34,23 @@ Route::middleware(['auth'])->group(function () {
 
     // Projects
     Route::get('/dashboard/projects', [ProjectController::class, 'index'])->name('projects.index');
+    Route::get('/dashboard/projects/create', [ProjectController::class, 'create'])->name('projects.create');
+    Route::post('/dashboard/projects', [ProjectController::class, 'store'])->name('projects.store');
     Route::get('/dashboard/projects/{id}', [ProjectController::class, 'show'])->name('projects.show');
+    Route::get('/dashboard/projects/{id}/edit', [ProjectController::class, 'edit'])->name('projects.edit');
+    Route::put('/dashboard/projects/{id}', [ProjectController::class, 'update'])->name('projects.update');
+    Route::delete('/dashboard/projects/{id}', [ProjectController::class, 'destroy'])->name('projects.destroy');
 
     // Kanban Board
     Route::get('/dashboard/board/{boardId}', [ProjectController::class, 'board'])->name('kanban.board');
+
+    // Tasks
+    Route::post('/dashboard/tasks', [TaskController::class, 'store'])->name('tasks.store');
+    Route::get('/dashboard/tasks/{id}', [TaskController::class, 'show'])->name('tasks.show');
+    Route::get('/dashboard/tasks/{id}/edit', [TaskController::class, 'edit'])->name('tasks.edit');
+    Route::put('/dashboard/tasks/{id}', [TaskController::class, 'update'])->name('tasks.update');
+    Route::delete('/dashboard/tasks/{id}', [TaskController::class, 'destroy'])->name('tasks.destroy');
+    Route::post('/dashboard/tasks/{id}/status', [TaskController::class, 'updateStatus'])->name('tasks.updateStatus');
 
     // Team
     Route::get('/dashboard/team', [TeamController::class, 'index'])->name('team.index');

@@ -23,20 +23,20 @@
     <div class="grid gap-4 md:grid-cols-4">
         <div class="bg-white rounded-lg shadow p-6">
             <h3 class="text-sm pb-2">Total Users</h3>
-            <div class="text-2xl font-bold">8</div>
-            <p class="text-xs text-green-600 mt-1">+2 this month</p>
+            <div class="text-2xl font-bold">{{ $totalUsers }}</div>
+            <p class="text-xs text-green-600 mt-1">System users</p>
         </div>
         <div class="bg-white rounded-lg shadow p-6">
             <h3 class="text-sm pb-2">Admins</h3>
-            <div class="text-2xl font-bold">2</div>
+            <div class="text-2xl font-bold">{{ $admins }}</div>
         </div>
         <div class="bg-white rounded-lg shadow p-6">
             <h3 class="text-sm pb-2">Team Leaders</h3>
-            <div class="text-2xl font-bold">2</div>
+            <div class="text-2xl font-bold">{{ $teamLeaders }}</div>
         </div>
         <div class="bg-white rounded-lg shadow p-6">
             <h3 class="text-sm pb-2">Employees</h3>
-            <div class="text-2xl font-bold">4</div>
+            <div class="text-2xl font-bold">{{ $employees }}</div>
         </div>
     </div>
 
@@ -83,64 +83,37 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <template x-for="user in [
-                            { id: '1', name: 'John Doe', email: 'john@example.com', role: 'SuperAdmin', tasksCompleted: 45, activeTasks: 3 },
-                            { id: '2', name: 'Sarah Smith', email: 'sarah@example.com', role: 'Admin', tasksCompleted: 38, activeTasks: 5 },
-                            { id: '3', name: 'Mike Johnson', email: 'mike@example.com', role: 'Team Leader', tasksCompleted: 52, activeTasks: 4 },
-                            { id: '4', name: 'Emily Davis', email: 'emily@example.com', role: 'Employee', tasksCompleted: 28, activeTasks: 6 },
-                            { id: '5', name: 'James Wilson', email: 'james@example.com', role: 'Employee', tasksCompleted: 32, activeTasks: 2 },
-                        ].filter(u => (roleFilter === 'all' || u.role === roleFilter) && (u.name.toLowerCase().includes(searchQuery.toLowerCase()) || u.email.toLowerCase().includes(searchQuery.toLowerCase())))" :key="user.id">
-                            <tr class="border-b hover:bg-gray-50">
-                                <td class="py-3 px-4">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-9 h-9 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-white font-semibold" x-text="user.name.charAt(0)"></div>
-                                        <span class="font-medium" x-text="user.name"></span>
-                                    </div>
-                                </td>
-                                <td class="py-3 px-4 text-gray-600" x-text="user.email"></td>
-                                <td class="py-3 px-4">
-                                    <span class="px-2 py-1 text-xs rounded-full text-white" :class="{
-                                        'bg-purple-500': user.role === 'SuperAdmin',
-                                        'bg-blue-500': user.role === 'Admin',
-                                        'bg-green-500': user.role === 'Team Leader',
-                                        'bg-gray-500': user.role === 'Employee'
-                                    }" x-text="user.role"></span>
-                                </td>
-                                <td class="py-3 px-4">
-                                    <span class="text-green-600 font-medium" x-text="user.tasksCompleted"></span>
-                                </td>
-                                <td class="py-3 px-4" x-text="user.activeTasks"></td>
-                                <td class="py-3 px-4 text-right">
-                                    <div class="relative" x-data="{ open: false }">
-                                        <button @click="open = !open" class="p-2 hover:bg-gray-100 rounded-md">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                <circle cx="12" cy="12" r="1"></circle>
-                                                <circle cx="12" cy="5" r="1"></circle>
-                                                <circle cx="12" cy="19" r="1"></circle>
-                                            </svg>
-                                        </button>
-                                        <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50">
-                                            <a href="#" class="block px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
-                                                </svg>
-                                                Edit User
-                                            </a>
-                                            <a href="#" class="block px-4 py-2 text-sm hover:bg-gray-50">Change Role</a>
-                                            <a href="#" class="block px-4 py-2 text-sm hover:bg-gray-50">Reset Password</a>
-                                            <a href="#" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-50 flex items-center gap-2">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <path d="M3 6h18"></path>
-                                                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                                                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                                                </svg>
-                                                Delete User
-                                            </a>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        </template>
+                        @forelse($users as $user)
+                        @php
+                            $tasksCompleted = \App\Models\Task::where('assigned_to', $user->id)->where('status', 'Completed')->count();
+                            $activeTasks = \App\Models\Task::where('assigned_to', $user->id)->whereIn('status', ['To Do', 'In Progress', 'Review'])->count();
+                        @endphp
+                        <tr class="border-b hover:bg-gray-50" x-show="(roleFilter === 'all' || '{{ $user->role }}' === roleFilter) && ('{{ strtolower($user->name) }}'.includes(searchQuery.toLowerCase()) || '{{ strtolower($user->email) }}'.includes(searchQuery.toLowerCase()))">
+                            <td class="py-3 px-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-white font-semibold">{{ substr($user->name, 0, 1) }}</div>
+                                    <span class="font-medium">{{ $user->name }}</span>
+                                </div>
+                            </td>
+                            <td class="py-3 px-4 text-gray-600">{{ $user->email }}</td>
+                            <td class="py-3 px-4">
+                                <span class="px-2 py-1 text-xs rounded-full text-white
+                                    @if($user->role == 'SuperAdmin') bg-purple-500
+                                    @elseif($user->role == 'Admin') bg-blue-500
+                                    @elseif($user->role == 'Team Leader') bg-green-500
+                                    @else bg-gray-500 @endif">{{ $user->role }}</span>
+                            </td>
+                            <td class="py-3 px-4">{{ $tasksCompleted }}</td>
+                            <td class="py-3 px-4">{{ $activeTasks }}</td>
+                            <td class="py-3 px-4 text-right">
+                                <button class="text-[#3f8caf] hover:text-[#2a6a95]">Edit</button>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="6" class="py-8 text-center text-gray-500">No users found</td>
+                        </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>

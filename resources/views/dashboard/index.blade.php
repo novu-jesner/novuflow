@@ -104,45 +104,34 @@
             </div>
             <div class="p-6">
                 <div class="space-y-6">
+                    @forelse($projects->take(3) as $project)
                     <div class="space-y-2">
                         <div class="flex items-center justify-between">
                             <div>
-                                <div class="font-medium">Website Redesign</div>
-                                <div class="text-sm text-gray-500">Due: Dec 31, 2024</div>
+                                <div class="font-medium">{{ $project->name }}</div>
+                                <div class="text-sm text-gray-500">Due: {{ $project->due_date ? $project->due_date->format('M d, Y') : 'No due date' }}</div>
                             </div>
-                            <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">75%</span>
+                            <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">{{ $project->progress }}%</span>
                         </div>
                         <div class="w-full bg-gray-200 rounded-full h-2">
-                            <div class="bg-gradient-to-r from-[#3f8caf] to-[#54acc8] h-2 rounded-full" style="width: 75%"></div>
+                            <div class="bg-gradient-to-r from-[#3f8caf] to-[#54acc8] h-2 rounded-full" style="width: {{ $project->progress }}%"></div>
                         </div>
                         <div class="flex items-center gap-2">
                             <div class="flex -space-x-2">
-                                <div class="w-6 h-6 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-white text-xs">J</div>
-                                <div class="w-6 h-6 rounded-full bg-green-500 border-2 border-white flex items-center justify-center text-white text-xs">S</div>
-                                <div class="w-6 h-6 rounded-full bg-purple-500 border-2 border-white flex items-center justify-center text-white text-xs">M</div>
+                                @foreach($project->members->take(3) as $member)
+                                <div class="w-6 h-6 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-white text-xs">{{ substr($member->name, 0, 1) }}</div>
+                                @endforeach
                             </div>
-                            <span class="text-xs text-gray-500">+2 more</span>
+                            @if($project->members->count() > 3)
+                            <span class="text-xs text-gray-500">+{{ $project->members->count() - 3 }} more</span>
+                            @endif
                         </div>
                     </div>
-
-                    <div class="space-y-2">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <div class="font-medium">Mobile App Development</div>
-                                <div class="text-sm text-gray-500">Due: Jan 15, 2025</div>
-                            </div>
-                            <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">45%</span>
-                        </div>
-                        <div class="w-full bg-gray-200 rounded-full h-2">
-                            <div class="bg-gradient-to-r from-[#3f8caf] to-[#54acc8] h-2 rounded-full" style="width: 45%"></div>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <div class="flex -space-x-2">
-                                <div class="w-6 h-6 rounded-full bg-orange-500 border-2 border-white flex items-center justify-center text-white text-xs">A</div>
-                                <div class="w-6 h-6 rounded-full bg-pink-500 border-2 border-white flex items-center justify-center text-white text-xs">K</div>
-                            </div>
-                        </div>
+                    @empty
+                    <div class="text-center py-8 text-gray-500">
+                        <p>No active projects</p>
                     </div>
+                    @endforelse
 
                     <a href="{{ url('/dashboard/projects') }}" class="block w-full text-center py-2 px-4 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
                         View All Projects
@@ -159,45 +148,27 @@
             </div>
             <div class="p-6">
                 <div class="space-y-4">
+                    @forelse($tasks->sortByDesc('updated_at')->take(4) as $task)
                     <div class="flex items-start gap-3">
-                        <div class="w-8 h-8 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-white text-sm">J</div>
+                        <div class="w-8 h-8 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-white text-sm">{{ $task->creator ? substr($task->creator->name, 0, 1) : 'S' }}</div>
                         <div class="flex-1 space-y-1">
                             <p class="text-sm">
-                                <span class="font-medium">John Doe</span> completed task <span class="text-[#3f8caf]">"Update homepage"</span>
+                                <span class="font-medium">{{ $task->creator->name ?? 'System' }}</span>
+                                @if($task->updated_at != $task->created_at)
+                                    updated task status to {{ $task->status }}
+                                @else
+                                    created task
+                                @endif
+                                <span class="text-[#3f8caf]">"{{ $task->title }}"</span>
                             </p>
-                            <p class="text-xs text-gray-500">2 hours ago</p>
+                            <p class="text-xs text-gray-500">{{ $task->updated_at->diffForHumans() }}</p>
                         </div>
                     </div>
-
-                    <div class="flex items-start gap-3">
-                        <div class="w-8 h-8 rounded-full bg-green-500 border-2 border-white flex items-center justify-center text-white text-sm">S</div>
-                        <div class="flex-1 space-y-1">
-                            <p class="text-sm">
-                                <span class="font-medium">Sarah Smith</span> commented on <span class="text-[#3f8caf]">"API Integration"</span>
-                            </p>
-                            <p class="text-xs text-gray-500">4 hours ago</p>
-                        </div>
+                    @empty
+                    <div class="text-center py-8 text-gray-500">
+                        <p>No recent activity</p>
                     </div>
-
-                    <div class="flex items-start gap-3">
-                        <div class="w-8 h-8 rounded-full bg-purple-500 border-2 border-white flex items-center justify-center text-white text-sm">M</div>
-                        <div class="flex-1 space-y-1">
-                            <p class="text-sm">
-                                <span class="font-medium">Mike Johnson</span> created new project <span class="text-[#3f8caf]">"Q1 Marketing"</span>
-                            </p>
-                            <p class="text-xs text-gray-500">Yesterday</p>
-                        </div>
-                    </div>
-
-                    <div class="flex items-start gap-3">
-                        <div class="w-8 h-8 rounded-full bg-orange-500 border-2 border-white flex items-center justify-center text-white text-sm">A</div>
-                        <div class="flex-1 space-y-1">
-                            <p class="text-sm">
-                                <span class="font-medium">Alice Brown</span> moved task to <span class="text-[#3f8caf]">"In Progress"</span>
-                            </p>
-                            <p class="text-xs text-gray-500">Yesterday</p>
-                        </div>
-                    </div>
+                    @endforelse
                 </div>
             </div>
         </div>
