@@ -33,23 +33,29 @@
         >
     </div>
 
+    @php
+        $totalMembers = $members->count();
+        $activeTasks = \App\Models\Task::whereIn('status', ['To Do', 'In Progress', 'Review'])->count();
+        $completedTasks = \App\Models\Task::where('status', 'Completed')->count();
+        $avgCompletion = $activeTasks + $completedTasks > 0 ? round(($completedTasks / ($activeTasks + $completedTasks)) * 100) : 0;
+    @endphp
     <!-- Team Stats -->
     <div class="grid gap-4 md:grid-cols-4">
         <div class="bg-white rounded-lg shadow p-6">
             <h3 class="text-sm pb-2">Total Members</h3>
-            <div class="text-2xl font-bold">8</div>
+            <div class="text-2xl font-bold">{{ $totalMembers }}</div>
         </div>
         <div class="bg-white rounded-lg shadow p-6">
             <h3 class="text-sm pb-2">Active Tasks</h3>
-            <div class="text-2xl font-bold">24</div>
+            <div class="text-2xl font-bold">{{ $activeTasks }}</div>
         </div>
         <div class="bg-white rounded-lg shadow p-6">
             <h3 class="text-sm pb-2">Completed Tasks</h3>
-            <div class="text-2xl font-bold">156</div>
+            <div class="text-2xl font-bold">{{ $completedTasks }}</div>
         </div>
         <div class="bg-white rounded-lg shadow p-6">
             <h3 class="text-sm pb-2">Avg. Completion Rate</h3>
-            <div class="text-2xl font-bold">87%</div>
+            <div class="text-2xl font-bold">{{ $avgCompletion }}%</div>
         </div>
     </div>
 
@@ -61,38 +67,35 @@
         </div>
         <div class="p-6">
             <div class="space-y-3">
-                <template x-for="member in [
-                    { id: '1', name: 'John Doe', email: 'john@example.com', role: 'SuperAdmin', tasksCompleted: 45, activeTasks: 3 },
-                    { id: '2', name: 'Sarah Smith', email: 'sarah@example.com', role: 'Admin', tasksCompleted: 38, activeTasks: 5 },
-                    { id: '3', name: 'Mike Johnson', email: 'mike@example.com', role: 'Team Leader', tasksCompleted: 52, activeTasks: 4 },
-                    { id: '4', name: 'Emily Davis', email: 'emily@example.com', role: 'Employee', tasksCompleted: 28, activeTasks: 6 },
-                    { id: '5', name: 'James Wilson', email: 'james@example.com', role: 'Employee', tasksCompleted: 32, activeTasks: 2 },
-                ].filter(m => m.name.toLowerCase().includes(searchQuery.toLowerCase()) || m.email.toLowerCase().includes(searchQuery.toLowerCase()))" :key="member.id">
-                    <div class="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                        <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-white font-semibold" x-text="member.name.charAt(0)"></div>
-                            <div>
-                                <div class="font-medium" x-text="member.name"></div>
-                                <div class="text-sm text-gray-500 flex items-center gap-1">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <rect width="20" height="16" x="2" y="4" rx="2"></rect>
-                                        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
-                                    </svg>
-                                    <span x-text="member.email"></span>
-                                </div>
+                @forelse($members as $member)
+                @php
+                    $tasksCompleted = \App\Models\Task::where('assigned_to', $member->id)->where('status', 'Completed')->count();
+                    $activeTasks = \App\Models\Task::where('assigned_to', $member->id)->whereIn('status', ['To Do', 'In Progress', 'Review'])->count();
+                @endphp
+                <div class="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors" x-show="'{{ strtolower($member->name) }}'.includes(searchQuery.toLowerCase()) || '{{ strtolower($member->email) }}'.includes(searchQuery.toLowerCase())">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-white font-semibold">{{ substr($member->name, 0, 1) }}</div>
+                        <div>
+                            <div class="font-medium">{{ $member->name }}</div>
+                            <div class="text-sm text-gray-500 flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+                                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+                                </svg>
+                                <span>{{ $member->email }}</span>
                             </div>
                         </div>
-                        <div class="flex items-center gap-6">
-                            <span class="px-2 py-1 text-xs rounded-full text-white" :class="{
-                                'bg-purple-500': member.role === 'SuperAdmin',
-                                'bg-blue-500': member.role === 'Admin',
-                                'bg-green-500': member.role === 'Team Leader',
-                                'bg-gray-500': member.role === 'Employee'
-                            }" x-text="member.role"></span>
-                            <div class="text-right">
-                                <div class="text-sm font-medium text-green-600" x-text="member.tasksCompleted + ' completed'"></div>
-                                <div class="text-xs text-gray-500" x-text="member.activeTasks + ' active'"></div>
-                            </div>
+                    </div>
+                    <div class="flex items-center gap-6">
+                        <span class="px-2 py-1 text-xs rounded-full text-white
+                            @if($member->role == 'SuperAdmin') bg-purple-500
+                            @elseif($member->role == 'Admin') bg-blue-500
+                            @elseif($member->role == 'Team Leader') bg-green-500
+                            @else bg-gray-500 @endif">{{ $member->role }}</span>
+                    <div class="text-right">
+                        <div class="text-sm font-medium text-green-600">{{ $tasksCompleted }} completed</div>
+                        <div class="text-xs text-gray-500">{{ $activeTasks }} active</div>
+                    </div>
                             <div class="relative" x-data="{ open: false }">
                                 <button @click="open = !open" class="p-2 hover:bg-gray-100 rounded-md">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -110,7 +113,9 @@
                             </div>
                         </div>
                     </div>
-                </template>
+                @empty
+                    <div class="text-center py-8 text-gray-500">No team members found</div>
+                @endforelse
             </div>
         </div>
     </div>
