@@ -16,8 +16,7 @@
             <div class="flex items-start justify-between mb-4">
                 <h2 class="text-xl font-semibold text-gray-900">{{ $task->title }}</h2>
                 <span class="px-3 py-1 text-sm rounded-full
-                    @if($task->priority == 'Urgent') bg-red-100 text-red-700
-                    @elseif($task->priority == 'High') bg-orange-100 text-orange-700
+                    @if($task->priority == 'High') bg-orange-100 text-orange-700
                     @elseif($task->priority == 'Medium') bg-yellow-100 text-yellow-700
                     @else bg-gray-100 text-gray-700 @endif">{{ $task->priority }}</span>
             </div>

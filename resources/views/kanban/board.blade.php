@@ -4,30 +4,60 @@
 <div class="space-y-6" x-data="{ 
         showTaskModal: false,
         draggedTask: null,
-        async updateTaskStatus(taskId, newStatus) {
+        draggedEl: null,
+        async updateTaskStatus(taskId, newStatus, colId) {
+            const card = document.getElementById('task-' + taskId);
+            const targetCol = document.getElementById(colId).querySelector('.task-list');
+            
+            if (card && targetCol) {
+                targetCol.appendChild(card);
+                this.updateCounters();
+            }
+
             try {
                 const response = await fetch('/dashboard/tasks/' + taskId + '/status', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').getAttribute('content')
+                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
                     },
                     body: JSON.stringify({ status: newStatus })
                 });
                 if (response.ok) {
+                    $store.toast.show('Task moved to ' + newStatus, 'success');
+                } else {
+                    $store.toast.show('Failed to update task status', 'error');
                     window.location.reload();
                 }
             } catch (error) {
-                console.error('Error updating task:', error);
+                $store.toast.show('Network error', 'error');
+                window.location.reload();
             }
+        },
+        updateCounters() {
+            document.querySelectorAll('.kanban-column').forEach(col => {
+                const count = col.querySelectorAll('.task-card').length;
+                col.querySelector('.task-count').textContent = count;
+                const noTasksMsg = col.querySelector('.no-tasks');
+                if (noTasksMsg) {
+                    noTasksMsg.style.display = count === 0 ? 'block' : 'none';
+                }
+            });
+        },
+        async createTask(e) {
+            const form = e.target;
+            await submitForm(form, {
+                resetForm: true,
+                onSuccess: (data) => {
+                    this.showTaskModal = false;
+                    window.location.reload();
+                }
+            });
         }
     }">
-    <!-- Success Message -->
-    @if(session('success'))
-    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
-        <span class="block sm:inline">{{ session('success') }}</span>
-    </div>
-    @endif
+
 
     <!-- Header -->
     <div class="flex items-center justify-between">
@@ -60,7 +90,7 @@
             <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl w-full max-w-lg">
                 <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
                     <h3 class="text-xl font-semibold leading-6 text-gray-900 mb-4">Add New Task</h3>
-                    <form id="addTaskForm" action="{{ route('tasks.store') }}" method="POST" class="space-y-4">
+                    <form id="addTaskForm" action="{{ route('tasks.store') }}" method="POST" class="space-y-4" @submit.prevent="createTask($event)">
                         @csrf
                         <input type="hidden" name="project_id" value="{{ $project->id }}">
                         <div class="space-y-2">
@@ -118,17 +148,17 @@
     <!-- Kanban Board -->
     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4 overflow-x-auto">
         <!-- To Do Column -->
-        <div class="bg-gray-100 rounded-lg p-4 min-w-[300px]"
+        <div class="bg-gray-100 rounded-lg p-4 min-w-[300px] kanban-column" id="col-to-do"
             @dragover.prevent
-            @drop.prevent="if (draggedTask) { updateTaskStatus(draggedTask, 'To Do'); draggedTask = null; }"
+            @drop.prevent="if (draggedTask) { updateTaskStatus(draggedTask, 'To Do', 'col-to-do'); draggedTask = null; }"
             :class="{ 'bg-blue-50 ring-2 ring-blue-300': draggedTask }">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="font-semibold text-gray-700">To Do</h3>
-                <span class="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded-full">{{ $todoTasks->count() }}</span>
+                <span class="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded-full task-count">{{ $todoTasks->count() }}</span>
             </div>
-            <div class="space-y-3 min-h-[100px]">
-                @forelse($todoTasks as $task)
-                <a href="{{ route('tasks.show', $task->id) }}" class="block bg-white rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow group"
+            <div class="space-y-3 min-h-[100px] task-list">
+                @foreach($todoTasks as $task)
+                <a href="{{ route('tasks.show', $task->id) }}" id="task-{{ $task->id }}" class="block bg-white rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow group task-card"
                     draggable="true"
                     @dragstart="draggedTask = {{ $task->id }}">
                     <div class="flex items-start justify-between mb-2">
@@ -156,24 +186,23 @@
                         </div>
                     </div>
                 </a>
-                @empty
-                <div class="text-center py-8 text-gray-400 text-sm" x-show="!draggedTask">No tasks</div>
-                @endforelse
+                @endforeach
+                <div class="text-center py-8 text-gray-400 text-sm no-tasks" style="display: {{ $todoTasks->count() === 0 ? 'block' : 'none' }}">No tasks</div>
             </div>
         </div>
 
         <!-- In Progress Column -->
-        <div class="bg-gray-100 rounded-lg p-4 min-w-[300px]"
+        <div class="bg-gray-100 rounded-lg p-4 min-w-[300px] kanban-column" id="col-in-progress"
             @dragover.prevent
-            @drop.prevent="if (draggedTask) { updateTaskStatus(draggedTask, 'In Progress'); draggedTask = null; }"
+            @drop.prevent="if (draggedTask) { updateTaskStatus(draggedTask, 'In Progress', 'col-in-progress'); draggedTask = null; }"
             :class="{ 'bg-blue-50 ring-2 ring-blue-300': draggedTask }">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="font-semibold text-gray-700">In Progress</h3>
-                <span class="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded-full">{{ $inProgressTasks->count() }}</span>
+                <span class="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded-full task-count">{{ $inProgressTasks->count() }}</span>
             </div>
-            <div class="space-y-3 min-h-[100px]">
-                @forelse($inProgressTasks as $task)
-                <a href="{{ route('tasks.show', $task->id) }}" class="block bg-white rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow group"
+            <div class="space-y-3 min-h-[100px] task-list">
+                @foreach($inProgressTasks as $task)
+                <a href="{{ route('tasks.show', $task->id) }}" id="task-{{ $task->id }}" class="block bg-white rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow group task-card"
                     draggable="true"
                     @dragstart="draggedTask = {{ $task->id }}">
                     <div class="flex items-start justify-between mb-2">
@@ -201,24 +230,23 @@
                         </div>
                     </div>
                 </a>
-                @empty
-                <div class="text-center py-8 text-gray-400 text-sm" x-show="!draggedTask">No tasks</div>
-                @endforelse
+                @endforeach
+                <div class="text-center py-8 text-gray-400 text-sm no-tasks" style="display: {{ $inProgressTasks->count() === 0 ? 'block' : 'none' }}">No tasks</div>
             </div>
         </div>
 
         <!-- Review Column -->
-        <div class="bg-gray-100 rounded-lg p-4 min-w-[300px]"
+        <div class="bg-gray-100 rounded-lg p-4 min-w-[300px] kanban-column" id="col-review"
             @dragover.prevent
-            @drop.prevent="if (draggedTask) { updateTaskStatus(draggedTask, 'Review'); draggedTask = null; }"
+            @drop.prevent="if (draggedTask) { updateTaskStatus(draggedTask, 'Review', 'col-review'); draggedTask = null; }"
             :class="{ 'bg-blue-50 ring-2 ring-blue-300': draggedTask }">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="font-semibold text-gray-700">Review</h3>
-                <span class="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded-full">{{ $reviewTasks->count() }}</span>
+                <span class="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded-full task-count">{{ $reviewTasks->count() }}</span>
             </div>
-            <div class="space-y-3 min-h-[100px]">
-                @forelse($reviewTasks as $task)
-                <a href="{{ route('tasks.show', $task->id) }}" class="block bg-white rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow group"
+            <div class="space-y-3 min-h-[100px] task-list">
+                @foreach($reviewTasks as $task)
+                <a href="{{ route('tasks.show', $task->id) }}" id="task-{{ $task->id }}" class="block bg-white rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow group task-card"
                     draggable="true"
                     @dragstart="draggedTask = {{ $task->id }}">
                     <div class="flex items-start justify-between mb-2">
@@ -246,24 +274,23 @@
                         </div>
                     </div>
                 </a>
-                @empty
-                <div class="text-center py-8 text-gray-400 text-sm" x-show="!draggedTask">No tasks</div>
-                @endforelse
+                @endforeach
+                <div class="text-center py-8 text-gray-400 text-sm no-tasks" style="display: {{ $reviewTasks->count() === 0 ? 'block' : 'none' }}">No tasks</div>
             </div>
         </div>
 
         <!-- Completed Column -->
-        <div class="bg-gray-100 rounded-lg p-4 min-w-[300px]"
+        <div class="bg-gray-100 rounded-lg p-4 min-w-[300px] kanban-column" id="col-completed"
             @dragover.prevent
-            @drop.prevent="if (draggedTask) { updateTaskStatus(draggedTask, 'Completed'); draggedTask = null; }"
+            @drop.prevent="if (draggedTask) { updateTaskStatus(draggedTask, 'Completed', 'col-completed'); draggedTask = null; }"
             :class="{ 'bg-blue-50 ring-2 ring-blue-300': draggedTask }">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="font-semibold text-gray-700">Completed</h3>
-                <span class="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded-full">{{ $completedTasks->count() }}</span>
+                <span class="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded-full task-count">{{ $completedTasks->count() }}</span>
             </div>
-            <div class="space-y-3 min-h-[100px]">
-                @forelse($completedTasks as $task)
-                <a href="{{ route('tasks.show', $task->id) }}" class="block bg-white rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow opacity-75 group"
+            <div class="space-y-3 min-h-[100px] task-list">
+                @foreach($completedTasks as $task)
+                <a href="{{ route('tasks.show', $task->id) }}" id="task-{{ $task->id }}" class="block bg-white rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow opacity-75 group task-card"
                     draggable="true"
                     @dragstart="draggedTask = {{ $task->id }}">
                     <div class="flex items-start justify-between mb-2">
@@ -288,9 +315,8 @@
                         </div>
                     </div>
                 </a>
-                @empty
-                <div class="text-center py-8 text-gray-400 text-sm">No completed tasks</div>
-                @endforelse
+                @endforeach
+                <div class="text-center py-8 text-gray-400 text-sm no-tasks" style="display: {{ $completedTasks->count() === 0 ? 'block' : 'none' }}">No tasks</div>
             </div>
         </div>
     </div>

@@ -1,14 +1,21 @@
 @extends('layouts.dashboard')
 
 @section('dashboard-content')
-<div class="space-y-6" x-data="{ filter: 'all', searchQuery: '', showModal: false }">
-    <!-- Success Message -->
-    @if(session('success'))
-    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
-        <span class="block sm:inline">{{ session('success') }}</span>
-    </div>
-    @endif
-
+<div class="space-y-6" x-data="{ 
+        filter: 'all', 
+        searchQuery: '', 
+        showModal: false,
+        async createProject(e) {
+            await submitForm(e.target, {
+                resetForm: true,
+                onSuccess: (data) => {
+                    this.showModal = false;
+                    if (data.redirect) window.location.href = data.redirect;
+                    else window.location.reload();
+                }
+            });
+        }
+    }">
     <!-- Header -->
     <div class="flex items-center justify-between">
         <div>
@@ -31,7 +38,7 @@
             <div style="position: relative; transform: none; overflow: hidden; border-radius: 0.5rem; background-color: white; text-align: left; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); width: 100%; max-width: 32rem;">
                 <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
                     <h3 class="text-xl font-semibold leading-6 text-gray-900 mb-4">Create New Project</h3>
-                    <form id="createProjectForm" action="{{ route('projects.store') }}" method="POST" class="space-y-4">
+                    <form id="createProjectForm" action="{{ route('projects.store') }}" method="POST" class="space-y-4" @submit.prevent="createProject($event)">
                         @csrf
                         <div class="space-y-2">
                             <label for="name" class="block text-sm font-medium text-gray-700">Project Name</label>
@@ -96,8 +103,7 @@
         </div>
         <select x-model="filter" class="w-48 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent">
             <option value="all">All Projects</option>
-            <option value="Planning">Planning</option>
-            <option value="In Progress">In Progress</option>
+            <option value="Active">Active</option>
             <option value="On Hold">On Hold</option>
             <option value="Completed">Completed</option>
         </select>
@@ -113,8 +119,7 @@
                         <p class="text-sm text-gray-600 line-clamp-2">{{ $project->description }}</p>
                     </div>
                     <span class="px-2 py-1 text-xs rounded-full text-white
-                        @if($project->status == 'Planning') bg-gray-500
-                        @elseif($project->status == 'In Progress') bg-blue-500
+                        @if($project->status == 'Active') bg-blue-500
                         @elseif($project->status == 'On Hold') bg-yellow-500
                         @elseif($project->status == 'Completed') bg-green-500
                         @else bg-gray-500 @endif">
@@ -175,9 +180,6 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <a href="{{ route('projects.edit', $project->id) }}" class="px-3 py-1 bg-[#3f8caf] text-white rounded-md text-sm hover:bg-[#2a6a95] transition-colors">
-                            Edit
-                        </a>
                         <a href="{{ route('projects.show', $project->id) }}" class="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors">
                             View Details
                         </a>

@@ -96,12 +96,12 @@
             </button>
             <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50">
                 <div class="p-3 border-b font-semibold">My Account</div>
-                <a href="{{ url('/profile') }}" class="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50">
+                <a href="{{ url('/dashboard') }}" class="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
                         <circle cx="12" cy="7" r="4"></circle>
                     </svg>
-                    Profile
+                    My Account
                 </a>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
