@@ -12,7 +12,7 @@ class TaskController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'status' => 'required|in:To Do,In Progress,Review,Completed',
+            'status' => 'required|string|exists:project_columns,name,project_id,' . $request->project_id,
             'priority' => 'required|in:Low,Medium,High',
             'due_date' => 'nullable|date',
             'project_id' => 'required|exists:projects,id',
@@ -41,12 +41,20 @@ class TaskController extends Controller
 
     public function updateStatus(Request $request, $id)
     {
-        $validated = $request->validate([
-            'status' => 'required|in:To Do,In Progress,Review,Completed',
-        ]);
-
         $task = Task::findOrFail($id);
-        $task->update(['status' => $validated['status']]);
+
+        $validated = $request->validate([
+            'status' => 'required|string|exists:project_columns,name,project_id,' . $task->project_id,
+        ]);
+        
+        if (!$this->authorizeTaskAction($task)) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $task->update([
+            'status' => $validated['status'],
+            'updated_by' => auth()->id()
+        ]);
 
         return response()->json(['success' => true, 'message' => 'Task status updated']);
     }
@@ -59,9 +67,14 @@ class TaskController extends Controller
 
     public function edit($id)
     {
-        $task = Task::with(['project', 'assignee', 'creator', 'members'])->findOrFail($id);
+        $task = Task::with(['project.members', 'assignee', 'creator', 'members'])->findOrFail($id);
+        
+        if (!$this->authorizeTaskAction($task)) {
+            abort(403);
+        }
+
         $projects = \App\Models\Project::all();
-        $users = \App\Models\User::all();
+        $users = $task->project ? $task->project->members : collect();
         return view('tasks.edit', compact('task', 'projects', 'users'));
     }
 
@@ -69,10 +82,17 @@ class TaskController extends Controller
     {
         $task = Task::findOrFail($id);
 
+        if (!$this->authorizeTaskAction($task)) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+            abort(403);
+        }
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'status' => 'required|in:To Do,In Progress,Review,Completed',
+            'status' => 'required|string|exists:project_columns,name,project_id,' . $task->project_id,
             'priority' => 'required|in:Low,Medium,High',
             'due_date' => 'nullable|date',
             'project_id' => 'required|exists:projects,id',
@@ -87,6 +107,7 @@ class TaskController extends Controller
             'due_date' => $validated['due_date'],
             'project_id' => $validated['project_id'],
             'assigned_to' => $validated['assigned_to'],
+            'updated_by' => auth()->id(),
         ]);
 
         if ($request->expectsJson()) {
@@ -99,6 +120,14 @@ class TaskController extends Controller
     public function destroy($id)
     {
         $task = Task::findOrFail($id);
+        
+        if (!$this->authorizeTaskAction($task)) {
+            if (request()->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+            abort(403);
+        }
+
         $projectId = $task->project_id;
         
         // Detach members
@@ -112,5 +141,15 @@ class TaskController extends Controller
         }
 
         return redirect()->route('kanban.board', $projectId)->with('success', 'Task deleted successfully!');
+    }
+
+    private function authorizeTaskAction(Task $task)
+    {
+        $user = auth()->user();
+        if ($user->role === 'SuperAdmin' || $user->role === 'Admin') {
+            return true;
+        }
+        
+        return $task->created_by === $user->id || $task->assigned_to === $user->id;
     }
 }

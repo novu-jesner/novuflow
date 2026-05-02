@@ -12,9 +12,57 @@ class DashboardController extends Controller
     public function index()
     {
         $user = auth()->user();
-        $projects = Project::with('team')->latest()->take(5)->get();
-        $tasks = Task::with('project', 'assignee', 'creator')->latest()->take(5)->get();
-        $teamMembers = User::whereHas('teams')->latest()->take(5)->get();
+        
+        $projectQuery = Project::with('team', 'members');
+        $taskQuery = Task::with('project', 'assignee', 'creator', 'updater');
+        $teamMemberQuery = User::whereHas('teams');
+
+        if ($user->role !== 'SuperAdmin' && $user->role !== 'Admin') {
+            // Get IDs of teams the user is involved in
+            $teamIds = $user->teams->pluck('id')->toArray();
+            if ($user->role === 'Team Leader') {
+                $ledTeamIds = \App\Models\Team::where('leader_id', $user->id)->pluck('id')->toArray();
+                $teamIds = array_unique(array_merge($teamIds, $ledTeamIds));
+            }
+
+            // Filter Projects
+            $projectQuery->where(function($q) use ($user, $teamIds) {
+                $q->where('created_by', $user->id)
+                  ->orWhereHas('members', function($mq) use ($user) {
+                      $mq->where('users.id', $user->id);
+                  });
+                
+                if (!empty($teamIds)) {
+                    $q->orWhereIn('team_id', $teamIds);
+                }
+            });
+
+            // Filter Tasks based on project accessibility
+            $taskQuery->whereHas('project', function($q) use ($user, $teamIds) {
+                $q->where('created_by', $user->id)
+                  ->orWhereHas('members', function($mq) use ($user) {
+                      $mq->where('users.id', $user->id);
+                  });
+                
+                if (!empty($teamIds)) {
+                    $q->orWhereIn('team_id', $teamIds);
+                }
+            });
+
+            // Filter Team Members to only those in the user's teams
+            if (!empty($teamIds)) {
+                $teamMemberQuery->whereHas('teams', function($q) use ($teamIds) {
+                    $q->whereIn('teams.id', $teamIds);
+                });
+            } else {
+                // If user has no team, they only see themselves
+                $teamMemberQuery->where('id', $user->id);
+            }
+        }
+
+        $projects = $projectQuery->latest()->get();
+        $tasks = $taskQuery->latest()->get();
+        $teamMembers = $teamMemberQuery->latest()->get();
 
         return view('dashboard.index', compact('projects', 'tasks', 'teamMembers'));
     }

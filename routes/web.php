@@ -51,8 +51,13 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/dashboard/projects/{id}', [ProjectController::class, 'update'])->name('projects.update');
     Route::delete('/dashboard/projects/{id}', [ProjectController::class, 'destroy'])->name('projects.destroy');
     Route::post('/dashboard/projects/{id}/members', [ProjectController::class, 'addMember'])->name('projects.members.add');
+    Route::post('/dashboard/projects/{id}/members/sync', [ProjectController::class, 'syncMembers'])->name('projects.members.sync');
     Route::delete('/dashboard/projects/{id}/members/{userId}', [ProjectController::class, 'removeMember'])->name('projects.members.remove');
     Route::post('/dashboard/projects/{id}/status', [ProjectController::class, 'updateStatus'])->name('projects.updateStatus');
+    Route::post('/dashboard/projects/{id}/columns', [ProjectController::class, 'addColumn'])->name('projects.columns.add');
+    Route::put('/dashboard/projects/{id}/columns/{columnId}', [ProjectController::class, 'updateColumn'])->name('projects.columns.update');
+    Route::delete('/dashboard/projects/{id}/columns/{columnId}', [ProjectController::class, 'deleteColumn'])->name('projects.columns.delete');
+    Route::post('/dashboard/projects/{id}/columns/reorder', [ProjectController::class, 'reorderColumns'])->name('projects.columns.reorder');
 
     // Kanban Board
     Route::get('/dashboard/board/{boardId}', [ProjectController::class, 'board'])->name('kanban.board');
@@ -66,7 +71,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/dashboard/tasks/{id}/status', [TaskController::class, 'updateStatus'])->name('tasks.updateStatus');
 
     // Team
-    Route::get('/dashboard/team', [TeamController::class, 'index'])->name('team.index');
+    Route::get('/dashboard/team/{id?}', [TeamController::class, 'index'])->name('team.index');
     Route::post('/dashboard/team/invite', [TeamController::class, 'inviteMember'])->name('team.invite');
     Route::get('/dashboard/team/members/{id}/profile', [TeamController::class, 'memberProfile'])->name('team.member.profile');
     Route::post('/dashboard/team/members/{id}/tasks', [TeamController::class, 'assignTasks'])->name('team.member.tasks');
