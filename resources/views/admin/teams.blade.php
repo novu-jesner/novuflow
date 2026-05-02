@@ -58,7 +58,7 @@
                         </button>
                         <div x-show="open" @click.away="open = false" class="absolute right-0 top-8 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50" style="display: none;">
                             <a href="{{ route('admin.teams.edit', $team->id) }}" class="block px-4 py-2 text-sm hover:bg-gray-50">Edit Team</a>
-                            <a href="{{ route('team.index') }}" class="block px-4 py-2 text-sm hover:bg-gray-50">View Projects</a>
+                            <a href="{{ route('team.index', $team->id) }}" class="block px-4 py-2 text-sm hover:bg-gray-50">View Projects</a>
                             <button type="button" @click="ajaxDelete('{{ route('admin.teams.destroy', $team->id) }}', { onSuccess: () => { show = false; open = false; } })" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50">Delete Team</button>
                         </div>
                     </div>
@@ -112,7 +112,7 @@
                     <a href="{{ route('admin.teams.edit', $team->id) }}" class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm text-center hover:bg-gray-50 transition-colors">
                         Manage
                     </a>
-                    <a href="{{ route('team.index') }}" class="flex-1 px-3 py-2 bg-gradient-to-r from-[#3f8caf] to-[#54acc8] text-white rounded-md text-sm text-center hover:from-[#2a6a95] hover:to-[#3f8caf] transition-colors">
+                    <a href="{{ route('team.index', $team->id) }}" class="flex-1 px-3 py-2 bg-gradient-to-r from-[#3f8caf] to-[#54acc8] text-white rounded-md text-sm text-center hover:from-[#2a6a95] hover:to-[#3f8caf] transition-colors">
                         View Details
                     </a>
                 </div>

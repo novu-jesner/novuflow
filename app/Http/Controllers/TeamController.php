@@ -9,12 +9,46 @@ use Illuminate\Http\Request;
 
 class TeamController extends Controller
 {
-    public function index()
+    public function index($id = null)
     {
-        $teams = Team::with('leader', 'members')->latest()->get();
-        $members = User::with('teams')->latest()->get();
+        $user = auth()->user();
+        $team = null;
         
-        return view('team.index', compact('teams', 'members'));
+        if ($id) {
+            $team = Team::with('leader', 'members', 'projects')->findOrFail($id);
+            $members = $team->members;
+        } elseif ($user->role === 'Team Leader') {
+            $team = Team::where('leader_id', $user->id)->first();
+            $members = $team ? $team->members : collect();
+        } elseif ($user->isAdmin()) {
+            $members = User::with('teams')->latest()->get();
+            // For admins without a specific team context, maybe just show everyone or no stats
+        } else {
+            $team = $user->teams()->first();
+            $members = $team ? $team->members : collect();
+        }
+
+        // Calculate Stats
+        if ($team) {
+            $projectIds = $team->projects->pluck('id');
+            $activeTasks = Task::whereIn('project_id', $projectIds)->whereIn('status', ['To Do', 'In Progress', 'Review'])->count();
+            $completedTasks = Task::whereIn('project_id', $projectIds)->where('status', 'Completed')->count();
+        } else {
+            // Fallback for Admins or users without teams
+            $activeTasks = Task::whereIn('status', ['To Do', 'In Progress', 'Review'])->count();
+            $completedTasks = Task::where('status', 'Completed')->count();
+        }
+        
+        $totalMembers = $members->count();
+        $avgCompletion = ($activeTasks + $completedTasks) > 0 
+            ? round(($completedTasks / ($activeTasks + $completedTasks)) * 100) 
+            : 0;
+
+        $availableUsers = $team ? User::whereNotIn('id', $members->pluck('id'))->get() : collect();
+
+        $teams = Team::with('leader', 'members')->latest()->get();
+        
+        return view('team.index', compact('teams', 'members', 'totalMembers', 'activeTasks', 'completedTasks', 'avgCompletion', 'availableUsers', 'team'));
     }
 
     public function adminTeams()
@@ -33,8 +67,9 @@ class TeamController extends Controller
 
     public function create()
     {
-        $users = User::all();
-        return view('admin.teams-create', compact('users'));
+        $leaders = User::where('role', 'Team Leader')->get();
+        $allUsers = User::all();
+        return view('admin.teams-create', compact('leaders', 'allUsers'));
     }
 
     public function store(Request $request)
@@ -43,6 +78,8 @@ class TeamController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'leader_id' => 'required|exists:users,id',
+            'member_ids' => 'nullable|array',
+            'member_ids.*' => 'exists:users,id',
         ]);
 
         $team = Team::create([
@@ -50,6 +87,10 @@ class TeamController extends Controller
             'description' => $validated['description'],
             'leader_id' => $validated['leader_id'],
         ]);
+
+        if (!empty($validated['member_ids'])) {
+            $team->members()->attach($validated['member_ids']);
+        }
 
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'message' => 'Team created successfully!', 'redirect' => route('admin.teams')]);
@@ -61,8 +102,9 @@ class TeamController extends Controller
     public function edit($id)
     {
         $team = Team::with('leader', 'members')->findOrFail($id);
-        $users = User::all();
-        return view('admin.teams-edit', compact('team', 'users'));
+        $leaders = User::where('role', 'Team Leader')->get();
+        $allUsers = User::all();
+        return view('admin.teams-edit', compact('team', 'leaders', 'allUsers'));
     }
 
     public function update(Request $request, $id)
@@ -73,6 +115,8 @@ class TeamController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'leader_id' => 'required|exists:users,id',
+            'member_ids' => 'nullable|array',
+            'member_ids.*' => 'exists:users,id',
         ]);
 
         $team->update([
@@ -80,6 +124,10 @@ class TeamController extends Controller
             'description' => $validated['description'],
             'leader_id' => $validated['leader_id'],
         ]);
+
+        if (isset($validated['member_ids'])) {
+            $team->members()->sync($validated['member_ids']);
+        }
 
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'message' => 'Team updated successfully!']);

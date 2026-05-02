@@ -59,14 +59,82 @@
                             </div>
                             <div class="space-y-2">
                                 <label for="team_id" class="block text-sm font-medium text-gray-700">Team</label>
-                                <select id="team_id" name="team_id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent">
-                                    <option value="">No Team</option>
-                                    @foreach(\App\Models\Team::all() as $team)
-                                    <option value="{{ $team->id }}">{{ $team->name }}</option>
-                                    @endforeach
-                                </select>
+                                @if($userTeam)
+                                    <input type="hidden" name="team_id" value="{{ $userTeam->id }}">
+                                    <input type="text" value="{{ $userTeam->name }}" disabled class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500 cursor-not-allowed">
+                                @else
+                                    <select id="team_id" name="team_id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent">
+                                        <option value="">No Team</option>
+                                        @foreach(\App\Models\Team::all() as $team)
+                                        <option value="{{ $team->id }}">{{ $team->name }}</option>
+                                        @endforeach
+                                    </select>
+                                @endif
                             </div>
                         </div>
+
+                        <!-- Project Members Selection -->
+                        @if($teamMembers->count() > 0)
+                        <div class="space-y-2" x-data="{ 
+                            search: '', 
+                            showDropdown: false,
+                            members: {{ $teamMembers->map(fn($m) => ['id' => $m->id, 'name' => $m->name, 'email' => $m->email])->values()->toJson() }},
+                            selected: [],
+                            get filtered() {
+                                return this.members.filter(m => 
+                                    !this.selected.includes(m.id) && 
+                                    (m.name.toLowerCase().includes(this.search.toLowerCase()) || 
+                                     m.email.toLowerCase().includes(this.search.toLowerCase()))
+                                );
+                            },
+                            get selectedMembers() {
+                                return this.members.filter(m => this.selected.includes(m.id));
+                            }
+                        }">
+                            <label class="block text-sm font-medium text-gray-700">Project Members</label>
+                            
+                            <!-- Tags -->
+                            <div class="flex flex-wrap gap-2 mb-2">
+                                <template x-for="member in selectedMembers" :key="member.id">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium border border-blue-200">
+                                        <span x-text="member.name"></span>
+                                        <button type="button" @click="selected = selected.filter(id => id !== member.id)" class="hover:text-blue-900 transition-colors">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+                                        </button>
+                                        <input type="hidden" name="member_ids[]" :value="member.id">
+                                    </span>
+                                </template>
+                            </div>
+
+                            <div class="relative">
+                                <input 
+                                    type="text" 
+                                    x-model="search" 
+                                    @focus="showDropdown = true"
+                                    @click.away="showDropdown = false"
+                                    placeholder="Add members from your team..." 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent text-sm"
+                                >
+                                <div 
+                                    x-show="showDropdown && filtered.length > 0" 
+                                    class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto"
+                                    style="display: none;"
+                                >
+                                    <template x-for="member in filtered" :key="member.id">
+                                        <button 
+                                            type="button" 
+                                            @click="selected.push(member.id); search = '';"
+                                            class="w-full text-left px-4 py-2 hover:bg-gray-50 flex flex-col transition-colors border-b last:border-0 border-gray-100"
+                                        >
+                                            <span class="text-sm font-medium text-gray-900" x-text="member.name"></span>
+                                            <span class="text-xs text-gray-500" x-text="member.email"></span>
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+
                         <div class="grid grid-cols-2 gap-4">
                             <div class="space-y-2">
                                 <label for="start_date" class="block text-sm font-medium text-gray-700">Start Date</label>

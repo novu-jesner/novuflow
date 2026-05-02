@@ -149,11 +149,18 @@
             <div class="p-6">
                 <div class="space-y-4">
                     @forelse($tasks->sortByDesc('updated_at')->take(4) as $task)
+                    @php
+                        $activityUser = $task->updated_at != $task->created_at && $task->updater 
+                            ? $task->updater 
+                            : ($task->creator ?? null);
+                    @endphp
                     <div class="flex items-start gap-3">
-                        <div class="w-8 h-8 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-white text-sm">{{ $task->creator ? substr($task->creator->name, 0, 1) : 'S' }}</div>
+                        <div class="w-8 h-8 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-white text-sm">
+                            {{ $activityUser ? substr($activityUser->name, 0, 1) : 'S' }}
+                        </div>
                         <div class="flex-1 space-y-1">
                             <p class="text-sm">
-                                <span class="font-medium">{{ $task->creator->name ?? 'System' }}</span>
+                                <span class="font-medium">{{ $activityUser->name ?? 'System' }}</span>
                                 @if($task->updated_at != $task->created_at)
                                     updated task status to {{ $task->status }}
                                 @else
