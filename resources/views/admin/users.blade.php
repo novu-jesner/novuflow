@@ -8,7 +8,7 @@
             <h1 class="text-3xl font-semibold text-gray-900">User Management</h1>
             <p class="text-gray-600 mt-1">Manage users, roles, and permissions</p>
         </div>
-        <button class="bg-gradient-to-r from-[#3f8caf] to-[#54acc8] text-white px-4 py-2 rounded-md hover:from-[#2a6a95] hover:to-[#3f8caf] transition-colors">
+        <a href="{{ route('admin.users.create') }}" class="bg-gradient-to-r from-[#3f8caf] to-[#54acc8] text-white px-4 py-2 rounded-md hover:from-[#2a6a95] hover:to-[#3f8caf] transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline mr-2">
                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
                 <circle cx="9" cy="7" r="4"></circle>
@@ -16,7 +16,7 @@
                 <line x1="23" x2="17" y1="11" y2="11"></line>
             </svg>
             Add User
-        </button>
+        </a>
     </div>
 
     <!-- Stats -->
@@ -106,7 +106,7 @@
                             <td class="py-3 px-4">{{ $tasksCompleted }}</td>
                             <td class="py-3 px-4">{{ $activeTasks }}</td>
                             <td class="py-3 px-4 text-right">
-                                <button class="text-[#3f8caf] hover:text-[#2a6a95]">Edit</button>
+                                <a href="{{ route('admin.users.edit', $user->id) }}" class="text-[#3f8caf] hover:text-[#2a6a95]">Edit</a>
                             </td>
                         </tr>
                         @empty

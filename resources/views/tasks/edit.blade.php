@@ -1,7 +1,18 @@
 @extends('layouts.dashboard')
 
 @section('dashboard-content')
-<div class="max-w-2xl mx-auto">
+<div class="max-w-2xl mx-auto" x-data="{
+    async updateTask(e) {
+        await submitForm(e.target, { resetForm: false });
+    },
+    async deleteTask() {
+        await ajaxDelete('{{ route('tasks.destroy', $task->id) }}', {
+            onSuccess: (data) => {
+                if (data.redirect) window.location.href = data.redirect;
+            }
+        });
+    }
+}">
     <div class="flex items-center gap-4 mb-6">
         <a href="{{ route('kanban.board', $task->project_id) }}" class="text-gray-600 hover:text-gray-900">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -11,24 +22,8 @@
         <h1 class="text-2xl font-semibold text-gray-900">Edit Task</h1>
     </div>
 
-    @if(session('success'))
-    <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-6">
-        {{ session('success') }}
-    </div>
-    @endif
-
-    @if($errors->any())
-    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
-        <ul class="list-disc list-inside">
-            @foreach($errors->all() as $error)
-            <li>{{ $error }}</li>
-            @endforeach
-        </ul>
-    </div>
-    @endif
-
     <div class="bg-white rounded-lg shadow">
-        <form action="{{ route('tasks.update', $task->id) }}" method="POST" class="p-6 space-y-6">
+        <form action="{{ route('tasks.update', $task->id) }}" method="POST" class="p-6 space-y-6" @submit.prevent="updateTask">
             @csrf
             @method('PUT')
 
@@ -133,7 +128,7 @@
             <div class="flex items-center justify-between pt-4 border-t">
                 <button
                     type="button"
-                    onclick="if(confirm('Are you sure you want to delete this task?')) { document.getElementById('delete-form').submit(); }"
+                    @click="deleteTask()"
                     class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
                 >
                     Delete Task
@@ -154,11 +149,6 @@
                     </button>
                 </div>
             </div>
-        </form>
-
-        <form id="delete-form" action="{{ route('tasks.destroy', $task->id) }}" method="POST" class="hidden">
-            @csrf
-            @method('DELETE')
         </form>
     </div>
 </div>
