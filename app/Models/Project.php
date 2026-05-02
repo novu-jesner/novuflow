@@ -44,4 +44,9 @@ class Project extends Model
     {
         return $this->hasMany(Task::class);
     }
+
+    public function columns()
+    {
+        return $this->hasMany(ProjectColumn::class)->orderBy('order');
+    }
 }

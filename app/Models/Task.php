@@ -18,6 +18,7 @@ class Task extends Model
         'project_id',
         'assigned_to',
         'created_by',
+        'updated_by',
     ];
 
     protected $casts = [
@@ -37,6 +38,11 @@ class Task extends Model
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function updater()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
     }
 
     public function members()

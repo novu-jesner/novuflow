@@ -113,9 +113,6 @@
                 <a href="{{ route('kanban.board', $task->project_id) }}" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-white transition-colors">
                     Back to Board
                 </a>
-                <a href="{{ route('tasks.edit', $task->id) }}" class="px-4 py-2 bg-gradient-to-r from-[#3f8caf] to-[#54acc8] text-white rounded-md hover:from-[#2a6a95] hover:to-[#3f8caf] transition-colors">
-                    Edit Task
-                </a>
             </div>
         </div>
     </div>

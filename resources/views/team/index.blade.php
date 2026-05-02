@@ -1,14 +1,26 @@
 @extends('layouts.dashboard')
 
 @section('dashboard-content')
-<div class="space-y-6" x-data="{ searchQuery: '' }">
+<div class="space-y-6" x-data="{ 
+    searchQuery: '', 
+    showInviteModal: false,
+    async inviteMember(e) {
+        await submitForm(e.target, {
+            onSuccess: (data) => {
+                this.showInviteModal = false;
+                window.location.reload();
+            }
+        });
+    }
+}">
     <!-- Header -->
     <div class="flex items-center justify-between">
         <div>
-            <h1 class="text-3xl font-semibold text-gray-900">Team</h1>
-            <p class="text-gray-600 mt-1">Manage your team members and their roles</p>
+            <h1 class="text-3xl font-semibold text-gray-900">{{ $team ? $team->name : 'Team' }}</h1>
+            <p class="text-gray-600 mt-1">{{ $team ? ($team->description ?? 'Manage your team members and their roles') : 'Manage your team members and their roles' }}</p>
         </div>
-        <a href="{{ route('admin.users.create') }}" class="bg-gradient-to-r from-[#3f8caf] to-[#54acc8] text-white px-4 py-2 rounded-md hover:from-[#2a6a95] hover:to-[#3f8caf] transition-colors">
+        @if($team)
+        <button @click="showInviteModal = true" class="bg-gradient-to-r from-[#3f8caf] to-[#54acc8] text-white px-4 py-2 rounded-md hover:from-[#2a6a95] hover:to-[#3f8caf] transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline mr-2">
                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
                 <circle cx="9" cy="7" r="4"></circle>
@@ -16,7 +28,8 @@
                 <line x1="23" x2="17" y1="11" y2="11"></line>
             </svg>
             Invite Member
-        </a>
+        </button>
+        @endif
     </div>
 
     <!-- Search -->
@@ -33,12 +46,6 @@
         >
     </div>
 
-    @php
-        $totalMembers = $members->count();
-        $activeTasks = \App\Models\Task::whereIn('status', ['To Do', 'In Progress', 'Review'])->count();
-        $completedTasks = \App\Models\Task::where('status', 'Completed')->count();
-        $avgCompletion = $activeTasks + $completedTasks > 0 ? round(($completedTasks / ($activeTasks + $completedTasks)) * 100) : 0;
-    @endphp
     <!-- Team Stats -->
     <div class="grid gap-4 md:grid-cols-4">
         <div class="bg-white rounded-lg shadow p-6">
@@ -117,6 +124,42 @@
                 @empty
                     <div class="text-center py-8 text-gray-500">No team members found</div>
                 @endforelse
+            </div>
+        </div>
+    </div>
+    <!-- Invite Member Modal -->
+    <div x-show="showInviteModal" style="display: none;" class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div x-show="showInviteModal" x-transition.opacity class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div x-show="showInviteModal" x-transition @click.away="showInviteModal = false" class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                    <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
+                                <h3 class="text-xl font-semibold leading-6 text-gray-900 mb-4" id="modal-title">Invite Member to Team</h3>
+                                <form action="{{ route('team.invite') }}" method="POST" @submit.prevent="inviteMember">
+                                    @csrf
+                                    <input type="hidden" name="team_id" value="{{ $team->id ?? '' }}">
+                                    <div class="space-y-4">
+                                        <div>
+                                            <label for="email" class="block text-sm font-medium text-gray-700">Select User</label>
+                                            <select name="email" id="email" required class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-[#54acc8] focus:border-[#54acc8] sm:text-sm rounded-md">
+                                                <option value="">Choose a user to invite</option>
+                                                @foreach($availableUsers as $user)
+                                                    <option value="{{ $user->email }}">{{ $user->name }} ({{ $user->email }})</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-reverse sm:grid-cols-2 sm:gap-3">
+                                        <button type="submit" class="inline-flex w-full justify-center rounded-md bg-gradient-to-r from-[#3f8caf] to-[#54acc8] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:from-[#2a6a95] hover:to-[#3f8caf] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3f8caf]">Invite Member</button>
+                                        <button type="button" @click="showInviteModal = false" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0">Cancel</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
