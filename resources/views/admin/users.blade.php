@@ -105,8 +105,15 @@
                             </td>
                             <td class="py-3 px-4">{{ $tasksCompleted }}</td>
                             <td class="py-3 px-4">{{ $activeTasks }}</td>
-                            <td class="py-3 px-4 text-right">
+                            <td class="py-3 px-4 text-right flex items-center justify-end gap-3">
                                 <a href="{{ route('admin.users.edit', $user->id) }}" class="text-[#3f8caf] hover:text-[#2a6a95]">Edit</a>
+                                @if(auth()->id() !== $user->id)
+                                <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this user? This action cannot be undone.');" class="inline">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="text-red-500 hover:text-red-700">Delete</button>
+                                </form>
+                                @endif
                             </td>
                         </tr>
                         @empty

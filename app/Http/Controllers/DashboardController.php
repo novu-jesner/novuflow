@@ -100,8 +100,27 @@ class DashboardController extends Controller
         $completedTasks = Task::where('status', 'Completed')->count();
         $activeTasks = Task::whereIn('status', ['To Do', 'In Progress'])->count();
         $teamMembers = User::count();
+        
+        $teams = \App\Models\Team::with(['leader', 'projects.tasks'])
+            ->withCount('members')
+            ->latest()
+            ->get()
+            ->map(function($team) {
+                $allTasks = $team->projects->flatMap->tasks;
+                $totalTasks = $allTasks->count();
+                $completed = $allTasks->where('status', 'Completed')->count();
+                
+                $team->projects_count = $team->projects->count();
+                $team->completion_rate = $totalTasks > 0 ? round(($completed / $totalTasks) * 100) : 0;
+                $team->overdue_tasks = $allTasks->where('status', '!=', 'Completed')
+                    ->where('due_date', '<', now())
+                    ->whereNotNull('due_date')
+                    ->count();
+                
+                return $team;
+            });
 
-        return view('admin.analytics', compact('totalProjects', 'completedTasks', 'activeTasks', 'teamMembers'));
+        return view('admin.analytics', compact('totalProjects', 'completedTasks', 'activeTasks', 'teamMembers', 'teams'));
     }
 
     public function createUser()
@@ -155,7 +174,11 @@ class DashboardController extends Controller
         ]);
 
         if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'User updated successfully!']);
+            return response()->json([
+                'success' => true, 
+                'message' => 'User updated successfully!',
+                'redirect' => route('admin.users')
+            ]);
         }
 
         return redirect()->route('admin.users')->with('success', 'User updated successfully!');
@@ -164,6 +187,24 @@ class DashboardController extends Controller
     public function destroyUser($id)
     {
         $user = User::findOrFail($id);
+        
+        // Prevent deleting self
+        if (auth()->id() === $user->id) {
+            if (request()->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'You cannot delete your own account.'], 403);
+            }
+            return redirect()->back()->with('error', 'You cannot delete your own account.');
+        }
+
+        // Check if user has tasks or projects
+        if ($user->assignedTasks()->exists() || $user->createdTasks()->exists() || $user->createdProjects()->exists()) {
+            $message = 'User cannot be deleted because they have associated tasks or projects. Please reassign or delete them first.';
+            if (request()->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $message], 422);
+            }
+            return redirect()->back()->with('error', $message);
+        }
+
         $user->delete();
 
         if (request()->expectsJson()) {

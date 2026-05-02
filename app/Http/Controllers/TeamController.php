@@ -67,7 +67,7 @@ class TeamController extends Controller
 
     public function create()
     {
-        $leaders = User::where('role', 'Team Leader')->get();
+        $leaders = User::where('role', 'Team Leader')->whereDoesntHave('ledTeam')->get();
         $allUsers = User::all();
         return view('admin.teams-create', compact('leaders', 'allUsers'));
     }
@@ -102,7 +102,12 @@ class TeamController extends Controller
     public function edit($id)
     {
         $team = Team::with('leader', 'members')->findOrFail($id);
-        $leaders = User::where('role', 'Team Leader')->get();
+        $leaders = User::where('role', 'Team Leader')
+            ->where(function($query) use ($team) {
+                $query->whereDoesntHave('ledTeam')
+                      ->orWhere('id', $team->leader_id);
+            })
+            ->get();
         $allUsers = User::all();
         return view('admin.teams-edit', compact('team', 'leaders', 'allUsers'));
     }
@@ -130,7 +135,11 @@ class TeamController extends Controller
         }
 
         if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Team updated successfully!']);
+            return response()->json([
+                'success' => true, 
+                'message' => 'Team updated successfully!',
+                'redirect' => route('admin.teams')
+            ]);
         }
 
         return redirect()->route('admin.teams')->with('success', 'Team updated successfully!');

@@ -1,4 +1,46 @@
-<header class="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-white px-6" x-data="{ mobileMenuOpen: false, notificationsOpen: false, userMenuOpen: false, notifications: [], unreadCount: 0 }">
+<header class="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-white px-6" 
+    x-data="{ 
+        mobileMenuOpen: false, 
+        notificationsOpen: false, 
+        userMenuOpen: false, 
+        notifications: {{ auth()->user()->notifications()->latest()->take(10)->get()->map(function($n) {
+            return [
+                'id' => $n->id,
+                'title' => $n->data['title'] ?? 'Notification',
+                'message' => $n->data['message'] ?? '',
+                'type' => $n->data['type'] ?? 'info',
+                'project_id' => $n->data['project_id'] ?? null,
+                'read' => !is_null($n->read_at),
+                'createdAt' => $n->created_at->toISOString()
+            ];
+        })->toJson() }}, 
+        unreadCount: {{ auth()->user()->unreadNotifications()->count() }},
+        async markAsRead(id) {
+            const n = this.notifications.find(notif => notif.id === id);
+            if (n) {
+                if (!n.read) {
+                    try {
+                        await fetch(`/notifications/${id}/read`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json'
+                            }
+                        });
+                        n.read = true;
+                        this.unreadCount = Math.max(0, this.unreadCount - 1);
+                    } catch (e) { console.error(e); }
+                }
+                
+                // Navigate based on type
+                if (n.type === 'project_invite') {
+                    window.location.href = `/dashboard/projects/${n.project_id}/invitation`;
+                } else if (n.type === 'task_assigned') {
+                    window.location.href = `/dashboard/board/${n.project_id}`;
+                }
+            }
+        }
+    }">
     <!-- Mobile menu -->
     <button @click="mobileMenuOpen = true" class="lg:hidden p-2 hover:bg-gray-100 rounded-md">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -47,19 +89,19 @@
         </div>
     </div>
 
-    <!-- Search -->
-    <div class="flex-1 max-w-md">
-        <div class="relative">
+    <!-- Spacer to push items to the right -->
+    <div class="flex-1"></div>
+
+    <!-- Right Side Controls -->
+    <div class="flex items-center gap-4 sm:gap-6">
+        <!-- Search -->
+        <div class="relative w-48 lg:w-64">
             <svg class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="11" cy="11" r="8"></circle>
                 <path d="m21 21-4.3-4.3"></path>
             </svg>
-            <input type="search" placeholder="Search tasks, projects..." class="w-full pl-10 pr-4 py-2 bg-gray-50 border-0 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8]">
+            <input type="search" placeholder="Search..." class="w-full pl-10 pr-4 py-2 bg-gray-50 border-0 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] text-sm">
         </div>
-    </div>
-
-    <!-- Right side -->
-    <div class="flex items-center gap-4">
         <!-- Notifications -->
         <div class="relative" x-data="{ open: false }">
             <button @click="open = !open" class="relative p-2 hover:bg-gray-100 rounded-md">
@@ -69,16 +111,26 @@
                 </svg>
                 <span x-show="unreadCount > 0" class="absolute -right-1 -top-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center" x-text="unreadCount"></span>
             </button>
-            <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border z-50">
-                <div class="p-3 border-b font-semibold">Notifications</div>
+            <div x-show="open" 
+                 x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0 scale-95"
+                 x-transition:enter-end="opacity-100 scale-100"
+                 @click.away="open = false" 
+                 class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-100 z-50 overflow-hidden" style="display: none;">
+                <div class="px-4 py-3 border-b bg-gray-50/50 font-semibold text-sm">Notifications</div>
                 <div class="max-h-96 overflow-y-auto">
                     <template x-for="notification in notifications" :key="notification.id">
-                        <div class="px-3 py-3 text-sm border-b last:border-0" :class="!notification.read ? 'bg-blue-50' : ''">
-                            <div class="font-medium" x-text="notification.title"></div>
-                            <div class="text-gray-600 text-xs mt-1" x-text="notification.message"></div>
-                            <div class="text-gray-400 text-xs mt-1" x-text="new Date(notification.createdAt).toLocaleDateString()"></div>
+                        <div class="px-4 py-3 text-sm border-b last:border-0 hover:bg-gray-50 cursor-pointer" 
+                             :class="!notification.read ? 'bg-blue-50/50' : ''"
+                             @click="markAsRead(notification.id)">
+                            <div class="font-medium text-gray-900" x-text="notification.title"></div>
+                            <div class="text-gray-600 text-xs mt-1 leading-relaxed" x-text="notification.message"></div>
+                            <div class="text-gray-400 text-xs mt-1.5" x-text="new Date(notification.createdAt).toLocaleDateString()"></div>
                         </div>
                     </template>
+                    <div x-show="notifications.length === 0" class="px-4 py-8 text-center text-gray-400 text-sm">
+                        No new notifications
+                    </div>
                 </div>
             </div>
         </div>
@@ -96,7 +148,7 @@
             </button>
             <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50">
                 <div class="p-3 border-b font-semibold">My Account</div>
-                <a href="{{ url('/dashboard') }}" class="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50">
+                <a href="{{ route('profile') }}" class="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
                         <circle cx="12" cy="7" r="4"></circle>

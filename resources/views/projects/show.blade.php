@@ -26,6 +26,7 @@
             </div>
         </div>
         <div class="flex items-center gap-2">
+            @if(auth()->id() === $project->created_by || in_array(auth()->user()->role, ['SuperAdmin', 'Admin']))
             <button @click="showSettingsModal = true" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline mr-2">
                     <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.39a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
@@ -33,6 +34,7 @@
                 </svg>
                 Settings
             </button>
+            @endif
             <a href="{{ route('kanban.board', $project->id) }}" class="bg-gradient-to-r from-[#3f8caf] to-[#54acc8] text-white px-4 py-2 rounded-md hover:from-[#2a6a95] hover:to-[#3f8caf] transition-colors">
                 View Board
             </a>
@@ -50,7 +52,7 @@
         </div>
         <div class="bg-white rounded-lg shadow p-6">
             <h3 class="text-sm pb-2">Team Members</h3>
-            <div class="text-2xl font-bold">{{ $project->members->count() }}</div>
+            <div class="text-2xl font-bold">{{ $project->members->where('pivot.status', 'accepted')->count() + 1 }}</div>
             <p class="text-xs text-gray-500 mt-1">Active collaborators</p>
         </div>
         <div class="bg-white rounded-lg shadow p-6">
@@ -197,21 +199,53 @@
             </div>
             <div class="p-6">
                 <div class="space-y-4">
+                    <!-- Project Creator (Owner) -->
+                    <div class="flex items-center justify-between p-4 border border-blue-100 bg-blue-50/30 rounded-lg shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <div class="relative">
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#3f8caf] to-[#54acc8] flex items-center justify-center text-white font-semibold shadow-sm">{{ substr($project->creator->name, 0, 1) }}</div>
+                                <div class="absolute -right-0.5 -bottom-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <div class="font-medium text-gray-900">{{ $project->creator->name }}</div>
+                                    <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold uppercase tracking-wider rounded-full border border-blue-200">Project Owner</span>
+                                </div>
+                                <div class="text-xs text-gray-500">{{ $project->creator->role }}</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm font-semibold text-gray-900">{{ $project->tasks->where('created_by', $project->creator->id)->count() }} tasks</div>
+                            <div class="text-[10px] text-gray-400 font-medium uppercase tracking-tight">created</div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
                     @forelse($project->members as $member)
                         @php
                             $completedTasks = $member->assignedTasks->where('project_id', $project->id)->where('status', 'Completed')->count();
                         @endphp
-                        <div class="flex items-center justify-between">
+                        <div class="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                             <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-white">{{ substr($member->name, 0, 1) }}</div>
+                                <div class="relative">
+                                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#3f8caf] to-[#54acc8] flex items-center justify-center text-white font-semibold shadow-sm">{{ substr($member->name, 0, 1) }}</div>
+                                    @if($member->pivot->status === 'accepted')
+                                        <div class="absolute -right-0.5 -bottom-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                                    @endif
+                                </div>
                                 <div>
-                                    <div class="font-medium">{{ $member->name }}</div>
-                                    <div class="text-sm text-gray-500">{{ $member->role }}</div>
+                                    <div class="flex items-center gap-2">
+                                        <div class="font-medium text-gray-900">{{ $member->name }}</div>
+                                        @if($member->pivot->status === 'pending')
+                                            <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-[10px] font-bold uppercase tracking-wider rounded-full border border-yellow-200">Invited</span>
+                                        @endif
+                                    </div>
+                                    <div class="text-xs text-gray-500">{{ $member->role }}</div>
                                 </div>
                             </div>
                             <div class="text-right">
-                                <div class="text-sm font-medium">{{ $completedTasks }} tasks</div>
-                                <div class="text-xs text-gray-500">completed</div>
+                                <div class="text-sm font-semibold text-gray-900">{{ $completedTasks }} tasks</div>
+                                <div class="text-[10px] text-gray-400 font-medium uppercase tracking-tight">completed</div>
                             </div>
                         </div>
                     @empty

@@ -115,7 +115,9 @@
                                 </button>
                                 <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50">
                                     <a href="{{ route('team.member.profile', $member->id) }}" class="block px-4 py-2 text-sm hover:bg-gray-50">View Profile</a>
+                                    @if(auth()->user()->role === 'SuperAdmin')
                                     <a href="{{ route('admin.users.edit', $member->id) }}" class="block px-4 py-2 text-sm hover:bg-gray-50">Change Role</a>
+                                    @endif
                                     <button type="button" @click="ajaxDelete('{{ route('team.member.remove', $member->id) }}', { onSuccess: () => { show = false; open = false; } })" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50">Remove Member</button>
                                 </div>
                             </div>
