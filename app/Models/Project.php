@@ -37,7 +37,7 @@ class Project extends Model
 
     public function members()
     {
-        return $this->belongsToMany(User::class, 'project_user');
+        return $this->belongsToMany(User::class, 'project_user')->withPivot('status')->withTimestamps();
     }
 
     public function tasks()

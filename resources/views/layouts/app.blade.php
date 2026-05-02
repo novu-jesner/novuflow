@@ -90,6 +90,16 @@
         }
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            @if(session('success'))
+                Alpine.store('toast').show("{{ session('success') }}", 'success');
+            @endif
+            @if(session('error'))
+                Alpine.store('toast').show("{{ session('error') }}", 'error');
+            @endif
+        });
+    </script>
 </head>
 <body class="min-h-screen">
     <!-- Toast Notifications -->

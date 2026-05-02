@@ -3,7 +3,12 @@
 @section('dashboard-content')
 <div class="space-y-6" x-data="{
     async updateTeam(e) {
-        await submitForm(e.target, { resetForm: false });
+        await submitForm(e.target, { 
+            resetForm: false,
+            onSuccess: (data) => {
+                if (data.redirect) window.location.href = data.redirect;
+            }
+        });
     }
 }">
     <div>

@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TeamController;
+use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 // Authentication Routes
@@ -41,6 +42,8 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('
 // Dashboard Routes (with auth middleware)
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/profile', [ProfileController::class, 'index'])->name('profile');
+    Route::put('/dashboard/profile', [ProfileController::class, 'update'])->name('profile.update');
 
     // Projects
     Route::get('/dashboard/projects', [ProjectController::class, 'index'])->name('projects.index');
@@ -58,6 +61,9 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/dashboard/projects/{id}/columns/{columnId}', [ProjectController::class, 'updateColumn'])->name('projects.columns.update');
     Route::delete('/dashboard/projects/{id}/columns/{columnId}', [ProjectController::class, 'deleteColumn'])->name('projects.columns.delete');
     Route::post('/dashboard/projects/{id}/columns/reorder', [ProjectController::class, 'reorderColumns'])->name('projects.columns.reorder');
+    Route::get('/dashboard/projects/{id}/invitation', [ProjectController::class, 'invitation'])->name('projects.invitation');
+    Route::post('/dashboard/projects/{id}/invite/accept', [ProjectController::class, 'acceptInvite'])->name('projects.invite.accept');
+    Route::post('/dashboard/projects/{id}/invite/reject', [ProjectController::class, 'rejectInvite'])->name('projects.invite.reject');
 
     // Kanban Board
     Route::get('/dashboard/board/{boardId}', [ProjectController::class, 'board'])->name('kanban.board');
@@ -99,4 +105,9 @@ Route::middleware(['auth'])->group(function () {
         
         Route::get('/analytics', [DashboardController::class, 'adminAnalytics'])->name('admin.analytics');
     });
+
+    Route::post('/notifications/{id}/read', function($id) {
+        auth()->user()->notifications()->where('id', $id)->update(['read_at' => now()]);
+        return response()->json(['success' => true]);
+    })->name('notifications.read');
 });
