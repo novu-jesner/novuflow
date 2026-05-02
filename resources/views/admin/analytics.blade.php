@@ -190,18 +190,62 @@
             </div>
         </div>
 
-        <!-- Teams Tab -->
-        <div x-show="activeTab === 'teams'" class="bg-white rounded-lg shadow p-6" style="display: none;">
-            <h3 class="font-semibold mb-4">Team Overview</h3>
-            <div class="grid gap-4 md:grid-cols-2">
-                <div class="bg-gray-50 p-4 rounded-lg text-center">
-                    <div class="text-3xl font-bold text-purple-600">{{ $teamMembers }}</div>
-                    <div class="text-sm text-gray-600">Total Members</div>
-                </div>
-                <div class="bg-gray-50 p-4 rounded-lg text-center">
-                    <div class="text-3xl font-bold text-orange-600">{{ $totalProjects }}</div>
-                    <div class="text-sm text-gray-600">Active Projects</div>
-                </div>
+        <div x-show="activeTab === 'teams'" class="bg-white rounded-lg shadow overflow-hidden" style="display: none;">
+            <div class="p-6 border-b">
+                <h3 class="font-semibold">Team Overview</h3>
+                <p class="text-sm text-gray-600">Complete list of all teams in the system</p>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+                        <tr>
+                            <th class="px-6 py-3 font-medium">Team & Leader</th>
+                            <th class="px-6 py-3 font-medium">Projects</th>
+                            <th class="px-6 py-3 font-medium">Task Completion</th>
+                            <th class="px-6 py-3 font-medium text-center">Overdue</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @forelse($teams as $team)
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4">
+                                <div class="flex flex-col">
+                                    <span class="font-bold text-gray-900">{{ $team->name }}</span>
+                                    <span class="text-xs text-gray-500">Lead: {{ $team->leader->name ?? 'None' }} • {{ $team->members_count }} members</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    {{ $team->projects_count }} Projects
+                                </span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="w-full max-w-[100px]">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs font-semibold text-[#3f8caf]">{{ $team->completion_rate }}%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-100 rounded-full h-1.5">
+                                        <div class="bg-[#3f8caf] h-1.5 rounded-full" style="width: {{ $team->completion_rate }}%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                @if($team->overdue_tasks > 0)
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 animate-pulse">
+                                        {{ $team->overdue_tasks }} Overdue
+                                    </span>
+                                @else
+                                    <span class="text-xs text-gray-400">—</span>
+                                @endif
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="5" class="px-6 py-8 text-center text-gray-500 italic">No teams found in the system.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -226,3 +270,5 @@
     </div>
 </div>
 @endsection
+
+tion

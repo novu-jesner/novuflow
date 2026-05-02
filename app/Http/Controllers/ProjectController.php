@@ -18,7 +18,8 @@ class ProjectController extends Controller
             $query->where(function($q) use ($user) {
                 $q->where('created_by', $user->id)
                   ->orWhereHas('members', function($q) use ($user) {
-                      $q->where('users.id', $user->id);
+                      $q->where('users.id', $user->id)
+                        ->where('project_user.status', 'accepted');
                   });
                 
                 if ($user->role === 'Team Leader') {
@@ -74,7 +75,14 @@ class ProjectController extends Controller
         ]);
 
         if (!empty($validated['member_ids'])) {
-            $project->members()->attach($validated['member_ids']);
+            foreach ($validated['member_ids'] as $userId) {
+                $project->members()->attach($userId, ['status' => 'pending']);
+                
+                $user = \App\Models\User::find($userId);
+                if ($user) {
+                    $user->notify(new \App\Notifications\ProjectInvite($project));
+                }
+            }
         }
 
         // Create default columns
@@ -100,10 +108,14 @@ class ProjectController extends Controller
         $user = auth()->user();
         if ($user->role !== 'SuperAdmin' && $user->role !== 'Admin') {
             $isCreator = $project->created_by === $user->id;
-            $isMember = $project->members->contains($user->id);
+            $isMember = $project->members()->where('users.id', $user->id)->where('project_user.status', 'accepted')->exists();
             $isTeamLead = $user->role === 'Team Leader' && $project->team_id && \App\Models\Team::where('id', $project->team_id)->where('leader_id', $user->id)->exists();
             
             if (!$isCreator && !$isMember && !$isTeamLead) {
+                // Check if they are pending to redirect to invitation
+                if ($project->members()->where('users.id', $user->id)->where('project_user.status', 'pending')->exists()) {
+                    return redirect()->route('projects.invitation', $id);
+                }
                 abort(403);
             }
         }
@@ -139,10 +151,13 @@ class ProjectController extends Controller
         $user = auth()->user();
         if ($user->role !== 'SuperAdmin' && $user->role !== 'Admin') {
             $isCreator = $project->created_by === $user->id;
-            $isMember = $project->members->contains($user->id);
+            $isMember = $project->members()->where('users.id', $user->id)->where('project_user.status', 'accepted')->exists();
             $isTeamLead = $user->role === 'Team Leader' && $project->team_id && \App\Models\Team::where('id', $project->team_id)->where('leader_id', $user->id)->exists();
             
             if (!$isCreator && !$isMember && !$isTeamLead) {
+                if ($project->members()->where('users.id', $user->id)->where('project_user.status', 'pending')->exists()) {
+                    return redirect()->route('projects.invitation', $boardId);
+                }
                 abort(403);
             }
         }
@@ -343,13 +358,78 @@ class ProjectController extends Controller
             }
         }
 
-        $project->members()->syncWithoutDetaching($validated['user_ids']);
-
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Members added successfully!', 'redirect' => route('projects.show', $project->id)]);
+        foreach ($validated['user_ids'] as $userId) {
+            // Only add if not already a member
+            if (!$project->members()->where('users.id', $userId)->exists()) {
+                $project->members()->attach($userId, ['status' => 'pending']);
+                
+                // Notify user
+                $user = \App\Models\User::find($userId);
+                if ($user) {
+                    $user->notify(new \App\Notifications\ProjectInvite($project));
+                }
+            }
         }
 
-        return back()->with('success', 'Members added successfully!');
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Invitations sent successfully!', 'redirect' => route('projects.show', $project->id)]);
+        }
+
+        return back()->with('success', 'Invitations sent successfully!');
+    }
+
+    public function invitation($id)
+    {
+        $project = Project::with('creator', 'members')->findOrFail($id);
+        $user = auth()->user();
+
+        // Verify user is invited and status is pending
+        $membership = $project->members()->where('users.id', $user->id)->first();
+        if (!$membership || $membership->pivot->status !== 'pending') {
+            return redirect()->route('projects.show', $id);
+        }
+
+        return view('projects.invitation', compact('project'));
+    }
+
+    public function acceptInvite(Request $request, $id)
+    {
+        $project = Project::findOrFail($id);
+        $user = auth()->user();
+
+        $project->members()->updateExistingPivot($user->id, ['status' => 'accepted']);
+
+        // Mark notification as read
+        $notificationId = $request->input('notification_id');
+        if ($notificationId) {
+            $user->notifications()->where('id', $notificationId)->update(['read_at' => now()]);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Project invitation accepted!', 'redirect' => route('projects.show', $project->id)]);
+        }
+
+        return redirect()->route('projects.show', $project->id)->with('success', 'Project invitation accepted!');
+    }
+
+    public function rejectInvite(Request $request, $id)
+    {
+        $project = Project::findOrFail($id);
+        $user = auth()->user();
+
+        $project->members()->detach($user->id);
+
+        // Mark notification as read
+        $notificationId = $request->input('notification_id');
+        if ($notificationId) {
+            $user->notifications()->where('id', $notificationId)->update(['read_at' => now()]);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Project invitation rejected!']);
+        }
+
+        return back()->with('success', 'Project invitation rejected!');
     }
 
     public function syncMembers(Request $request, $id)
@@ -361,13 +441,35 @@ class ProjectController extends Controller
             'member_ids.*' => 'exists:users,id'
         ]);
 
-        $project->members()->sync($validated['member_ids'] ?? []);
+        $newMemberIds = $validated['member_ids'] ?? [];
+        $currentMemberIds = $project->members->pluck('id')->toArray();
+        
+        // Members to add (not in current)
+        $toAdd = array_diff($newMemberIds, $currentMemberIds);
+        
+        // Members to remove (in current but not in new)
+        $toRemove = array_diff($currentMemberIds, $newMemberIds);
 
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Project members updated successfully!', 'redirect' => route('projects.show', $project->id)]);
+        // Add new members as pending and notify
+        foreach ($toAdd as $userId) {
+            $project->members()->attach($userId, ['status' => 'pending']);
+            
+            $user = \App\Models\User::find($userId);
+            if ($user) {
+                $user->notify(new \App\Notifications\ProjectInvite($project));
+            }
         }
 
-        return back()->with('success', 'Project members updated successfully!');
+        // Remove members
+        if (!empty($toRemove)) {
+            $project->members()->detach($toRemove);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Project members updated and invitations sent!', 'redirect' => route('projects.show', $project->id)]);
+        }
+
+        return back()->with('success', 'Project members updated and invitations sent!');
     }
 
     public function removeMember(Request $request, $id, $userId)

@@ -30,6 +30,14 @@ class TaskController extends Controller
             'created_by' => auth()->id(),
         ]);
 
+        // Notify assignee
+        if ($task->assigned_to && $task->assigned_to !== auth()->id()) {
+            $assignee = \App\Models\User::find($task->assigned_to);
+            if ($assignee) {
+                $assignee->notify(new \App\Notifications\TaskAssigned($task));
+            }
+        }
+
         $task->load('assignee');
 
         if ($request->expectsJson()) {
@@ -99,6 +107,7 @@ class TaskController extends Controller
             'assigned_to' => 'nullable|exists:users,id',
         ]);
 
+        $oldAssigneeId = $task->assigned_to;
         $task->update([
             'title' => $validated['title'],
             'description' => $validated['description'],
@@ -109,6 +118,14 @@ class TaskController extends Controller
             'assigned_to' => $validated['assigned_to'],
             'updated_by' => auth()->id(),
         ]);
+
+        // Notify new assignee if changed
+        if ($task->assigned_to && $task->assigned_to !== $oldAssigneeId && $task->assigned_to !== auth()->id()) {
+            $assignee = \App\Models\User::find($task->assigned_to);
+            if ($assignee) {
+                $assignee->notify(new \App\Notifications\TaskAssigned($task));
+            }
+        }
 
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'message' => 'Task updated successfully!', 'task' => $task]);

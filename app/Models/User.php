@@ -92,4 +92,9 @@ class User extends Authenticatable
     {
         return $this->role === 'Employee';
     }
+
+    public function ledTeam()
+    {
+        return $this->hasOne(Team::class, 'leader_id');
+    }
 }

@@ -232,18 +232,22 @@
                             <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                         </svg>
                         <div class="flex -space-x-2">
-                            @php $memberCount = $project->members->count(); @endphp
-                            @for($i = 0; $i < min(4, $memberCount); $i++)
-                                <div class="w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-white text-xs
-                                    @if($i == 0) bg-blue-500
-                                    @elseif($i == 1) bg-green-500
-                                    @elseif($i == 2) bg-purple-500
-                                    @else bg-orange-500 @endif">
-                                    {{ chr(65 + $i) }}
+                            @php 
+                                $acceptedMembers = $project->members->where('pivot.status', 'accepted');
+                                $memberCount = $acceptedMembers->count() + 1; // +1 for creator
+                            @endphp
+                            <!-- Creator Avatar -->
+                            <div class="w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold bg-gradient-to-br from-[#3f8caf] to-[#54acc8] shadow-sm" title="{{ $project->creator->name }} (Owner)">
+                                {{ substr($project->creator->name, 0, 1) }}
+                            </div>
+                            <!-- Accepted Members -->
+                            @foreach($acceptedMembers->take(3) as $index => $member)
+                                <div class="w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold bg-gray-400 shadow-sm" title="{{ $member->name }}">
+                                    {{ substr($member->name, 0, 1) }}
                                 </div>
-                            @endfor
+                            @endforeach
                             @if($memberCount > 4)
-                                <div class="w-7 h-7 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-xs">+{{ $memberCount - 4 }}</div>
+                                <div class="w-7 h-7 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-xs text-gray-600 font-bold">+{{ $memberCount - 4 }}</div>
                             @endif
                         </div>
                     </div>
