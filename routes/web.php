@@ -24,9 +24,19 @@ Route::get('/register', function () {
     return view('auth.register');
 })->name('register');
 
+Route::post('/register', [AuthController::class, 'register'])->name('register.post');
+
 Route::get('/forgot-password', function () {
     return view('auth.forgot-password');
 })->name('password.request');
+
+Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->name('password.email');
+
+Route::get('/reset-password/{token}', function ($token) {
+    return view('auth.reset-password', ['token' => $token]);
+})->name('password.reset');
+
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 
 // Dashboard Routes (with auth middleware)
 Route::middleware(['auth'])->group(function () {
@@ -40,6 +50,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/projects/{id}/edit', [ProjectController::class, 'edit'])->name('projects.edit');
     Route::put('/dashboard/projects/{id}', [ProjectController::class, 'update'])->name('projects.update');
     Route::delete('/dashboard/projects/{id}', [ProjectController::class, 'destroy'])->name('projects.destroy');
+    Route::post('/dashboard/projects/{id}/members', [ProjectController::class, 'addMember'])->name('projects.members.add');
+    Route::delete('/dashboard/projects/{id}/members/{userId}', [ProjectController::class, 'removeMember'])->name('projects.members.remove');
+    Route::post('/dashboard/projects/{id}/status', [ProjectController::class, 'updateStatus'])->name('projects.updateStatus');
 
     // Kanban Board
     Route::get('/dashboard/board/{boardId}', [ProjectController::class, 'board'])->name('kanban.board');
@@ -54,6 +67,11 @@ Route::middleware(['auth'])->group(function () {
 
     // Team
     Route::get('/dashboard/team', [TeamController::class, 'index'])->name('team.index');
+    Route::post('/dashboard/team/invite', [TeamController::class, 'inviteMember'])->name('team.invite');
+    Route::get('/dashboard/team/members/{id}/profile', [TeamController::class, 'memberProfile'])->name('team.member.profile');
+    Route::post('/dashboard/team/members/{id}/tasks', [TeamController::class, 'assignTasks'])->name('team.member.tasks');
+    Route::post('/dashboard/team/members/{id}/role', [TeamController::class, 'changeRole'])->name('team.member.role');
+    Route::delete('/dashboard/team/members/{id}', [TeamController::class, 'removeMember'])->name('team.member.remove');
 
     // Employee Tasks
     Route::get('/dashboard/my-tasks', [DashboardController::class, 'myTasks'])->name('employee.tasks');
@@ -61,7 +79,19 @@ Route::middleware(['auth'])->group(function () {
     // Admin Routes
     Route::middleware(['role:SuperAdmin,Admin'])->prefix('dashboard/admin')->group(function () {
         Route::get('/users', [DashboardController::class, 'adminUsers'])->name('admin.users');
+        Route::get('/users/create', [DashboardController::class, 'createUser'])->name('admin.users.create');
+        Route::post('/users', [DashboardController::class, 'storeUser'])->name('admin.users.store');
+        Route::get('/users/{id}/edit', [DashboardController::class, 'editUser'])->name('admin.users.edit');
+        Route::put('/users/{id}', [DashboardController::class, 'updateUser'])->name('admin.users.update');
+        Route::delete('/users/{id}', [DashboardController::class, 'destroyUser'])->name('admin.users.destroy');
+        
         Route::get('/teams', [TeamController::class, 'adminTeams'])->name('admin.teams');
+        Route::get('/teams/create', [TeamController::class, 'create'])->name('admin.teams.create');
+        Route::post('/teams', [TeamController::class, 'store'])->name('admin.teams.store');
+        Route::get('/teams/{id}/edit', [TeamController::class, 'edit'])->name('admin.teams.edit');
+        Route::put('/teams/{id}', [TeamController::class, 'update'])->name('admin.teams.update');
+        Route::delete('/teams/{id}', [TeamController::class, 'destroy'])->name('admin.teams.destroy');
+        
         Route::get('/analytics', [DashboardController::class, 'adminAnalytics'])->name('admin.analytics');
     });
 });

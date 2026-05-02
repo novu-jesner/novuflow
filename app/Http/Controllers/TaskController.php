@@ -30,6 +30,12 @@ class TaskController extends Controller
             'created_by' => auth()->id(),
         ]);
 
+        $task->load('assignee');
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Task added successfully!', 'task' => $task]);
+        }
+
         return redirect()->route('kanban.board', $validated['project_id'])->with('success', 'Task added successfully!');
     }
 
@@ -83,6 +89,10 @@ class TaskController extends Controller
             'assigned_to' => $validated['assigned_to'],
         ]);
 
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Task updated successfully!', 'task' => $task]);
+        }
+
         return redirect()->route('kanban.board', $task->project_id)->with('success', 'Task updated successfully!');
     }
 
@@ -96,6 +106,10 @@ class TaskController extends Controller
         
         // Delete task
         $task->delete();
+
+        if (request()->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Task deleted successfully!', 'redirect' => route('kanban.board', $projectId)]);
+        }
 
         return redirect()->route('kanban.board', $projectId)->with('success', 'Task deleted successfully!');
     }

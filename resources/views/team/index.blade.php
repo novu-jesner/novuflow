@@ -8,7 +8,7 @@
             <h1 class="text-3xl font-semibold text-gray-900">Team</h1>
             <p class="text-gray-600 mt-1">Manage your team members and their roles</p>
         </div>
-        <button class="bg-gradient-to-r from-[#3f8caf] to-[#54acc8] text-white px-4 py-2 rounded-md hover:from-[#2a6a95] hover:to-[#3f8caf] transition-colors">
+        <a href="{{ route('admin.users.create') }}" class="bg-gradient-to-r from-[#3f8caf] to-[#54acc8] text-white px-4 py-2 rounded-md hover:from-[#2a6a95] hover:to-[#3f8caf] transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline mr-2">
                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
                 <circle cx="9" cy="7" r="4"></circle>
@@ -16,7 +16,7 @@
                 <line x1="23" x2="17" y1="11" y2="11"></line>
             </svg>
             Invite Member
-        </button>
+        </a>
     </div>
 
     <!-- Search -->
@@ -72,7 +72,9 @@
                     $tasksCompleted = \App\Models\Task::where('assigned_to', $member->id)->where('status', 'Completed')->count();
                     $activeTasks = \App\Models\Task::where('assigned_to', $member->id)->whereIn('status', ['To Do', 'In Progress', 'Review'])->count();
                 @endphp
-                <div class="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors" x-show="'{{ strtolower($member->name) }}'.includes(searchQuery.toLowerCase()) || '{{ strtolower($member->email) }}'.includes(searchQuery.toLowerCase())">
+                <div class="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors" 
+                     x-data="{ show: true }" 
+                     x-show="show && ('{{ strtolower($member->name) }}'.includes(searchQuery.toLowerCase()) || '{{ strtolower($member->email) }}'.includes(searchQuery.toLowerCase()))">
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-white font-semibold">{{ substr($member->name, 0, 1) }}</div>
                         <div>
@@ -105,10 +107,9 @@
                                     </svg>
                                 </button>
                                 <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50">
-                                    <a href="#" class="block px-4 py-2 text-sm hover:bg-gray-50">View Profile</a>
-                                    <a href="#" class="block px-4 py-2 text-sm hover:bg-gray-50">Assign Tasks</a>
-                                    <a href="#" class="block px-4 py-2 text-sm hover:bg-gray-50">Change Role</a>
-                                    <a href="#" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-50">Remove Member</a>
+                                    <a href="{{ route('team.member.profile', $member->id) }}" class="block px-4 py-2 text-sm hover:bg-gray-50">View Profile</a>
+                                    <a href="{{ route('admin.users.edit', $member->id) }}" class="block px-4 py-2 text-sm hover:bg-gray-50">Change Role</a>
+                                    <button type="button" @click="ajaxDelete('{{ route('team.member.remove', $member->id) }}', { onSuccess: () => { show = false; open = false; } })" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50">Remove Member</button>
                                 </div>
                             </div>
                         </div>

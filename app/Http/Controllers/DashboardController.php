@@ -13,7 +13,7 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
         $projects = Project::with('team')->latest()->take(5)->get();
-        $tasks = Task::with('project', 'assignee')->latest()->take(5)->get();
+        $tasks = Task::with('project', 'assignee', 'creator')->latest()->take(5)->get();
         $teamMembers = User::whereHas('teams')->latest()->take(5)->get();
 
         return view('dashboard.index', compact('projects', 'tasks', 'teamMembers'));
@@ -54,5 +54,74 @@ class DashboardController extends Controller
         $teamMembers = User::count();
 
         return view('admin.analytics', compact('totalProjects', 'completedTasks', 'activeTasks', 'teamMembers'));
+    }
+
+    public function createUser()
+    {
+        return view('admin.users-create');
+    }
+
+    public function storeUser(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'role' => 'required|in:Employee,Team Leader,Admin,SuperAdmin',
+            'password' => 'required|string|min:8',
+        ]);
+
+        User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'role' => $validated['role'],
+            'password' => $validated['password'],
+        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'User created successfully!', 'redirect' => route('admin.users')]);
+        }
+
+        return redirect()->route('admin.users')->with('success', 'User created successfully!');
+    }
+
+    public function editUser($id)
+    {
+        $user = User::findOrFail($id);
+        return view('admin.users-edit', compact('user'));
+    }
+
+    public function updateUser(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,' . $id,
+            'role' => 'required|in:Employee,Team Leader,Admin,SuperAdmin',
+        ]);
+
+        $user->update([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'role' => $validated['role'],
+        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'User updated successfully!']);
+        }
+
+        return redirect()->route('admin.users')->with('success', 'User updated successfully!');
+    }
+
+    public function destroyUser($id)
+    {
+        $user = User::findOrFail($id);
+        $user->delete();
+
+        if (request()->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'User deleted successfully!']);
+        }
+
+        return redirect()->route('admin.users')->with('success', 'User deleted successfully!');
     }
 }
