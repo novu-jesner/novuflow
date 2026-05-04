@@ -4,15 +4,7 @@
 <div class="w-full bg-white rounded-lg shadow-lg">
     <div class="space-y-1 text-center p-6">
         <div class="flex justify-center mb-4">
-            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#3f8caf] to-[#54acc8] flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white">
-                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect>
-                    <rect width="3" height="3" x="7" y="7"></rect>
-                    <rect width="3" height="3" x="14" y="7"></rect>
-                    <rect width="3" height="3" x="7" y="14"></rect>
-                    <rect width="3" height="3" x="14" y="14"></rect>
-                </svg>
-            </div>
+            <img src="{{ asset('build/assets/novuflow_logo.png') }}" alt="NovuFlow Logo" class="h-12 w-auto">
         </div>
         <h1 class="text-2xl font-bold">Create an Account</h1>
         <p class="text-gray-600">Get started with NovuFlow today</p>
