@@ -55,7 +55,7 @@
         <div class="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r">
             <div class="flex h-16 shrink-0 items-center px-6">
                 <div class="flex items-center gap-2">
-                    <img src="{{ asset('build/assets/novuflow_logo.png') }}" alt="NovuFlow Logo" class="h-8 w-auto">
+                    <img src="{{ asset('assets/novuflow_logo.png') }}" alt="NovuFlow Logo" class="h-8 w-auto">
                     <span class="text-xl font-semibold text-[#2a6a95]">NovuFlow</span>
                 </div>
             </div>
