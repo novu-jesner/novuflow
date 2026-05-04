@@ -24,7 +24,7 @@
                 </svg>
             </div>
             <div>
-                <div class="text-2xl font-bold">{{ $projects->count() }}</div>
+                <div class="text-2xl font-bold">{{ $stats['total_projects'] }}</div>
                 <p class="text-xs text-green-600 flex items-center gap-1 mt-1">
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
@@ -43,7 +43,7 @@
                 </svg>
             </div>
             <div>
-                <div class="text-2xl font-bold">{{ $tasks->whereIn('status', ['To Do', 'In Progress'])->count() }}</div>
+                <div class="text-2xl font-bold">{{ $stats['active_tasks'] }}</div>
                 <p class="text-xs text-green-600 flex items-center gap-1 mt-1">
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
@@ -62,7 +62,7 @@
                 </svg>
             </div>
             <div>
-                <div class="text-2xl font-bold">{{ $tasks->where('status', 'Completed')->count() }}</div>
+                <div class="text-2xl font-bold">{{ $stats['completed_tasks'] }}</div>
                 <p class="text-xs text-green-600 flex items-center gap-1 mt-1">
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
@@ -83,7 +83,7 @@
                 </svg>
             </div>
             <div>
-                <div class="text-2xl font-bold">{{ $teamMembers->count() }}</div>
+                <div class="text-2xl font-bold">{{ $stats['team_members_count'] }}</div>
                 <p class="text-xs text-green-600 flex items-center gap-1 mt-1">
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
@@ -222,10 +222,6 @@
             <div class="p-6">
                 <div class="space-y-4">
                     @forelse($teamMembers as $member)
-                    @php
-                    $completedTasks = $member->assignedTasks()->where('status', 'Completed')->count();
-                    $activeTasks = $member->assignedTasks()->whereIn('status', ['To Do', 'In Progress'])->count();
-                    @endphp
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-3">
                             <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#3f8caf] to-[#54acc8] border-2 border-white flex items-center justify-center text-white text-sm">
@@ -237,8 +233,8 @@
                             </div>
                         </div>
                         <div class="text-right">
-                            <div class="text-sm font-medium text-green-600">{{ $completedTasks }} completed</div>
-                            <div class="text-xs text-gray-500">{{ $activeTasks }} active</div>
+                            <div class="text-sm font-medium text-green-600">{{ $member->dashboard_completed_tasks }} completed</div>
+                            <div class="text-xs text-gray-500">{{ $member->dashboard_active_tasks }} active</div>
                         </div>
                     </div>
                     @empty

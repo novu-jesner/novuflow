@@ -67,7 +67,7 @@ class TeamController extends Controller
 
     public function create()
     {
-        $leaders = User::where('role', 'Team Leader')->whereDoesntHave('ledTeam')->get();
+        $leaders = User::where('role', 'Team Leader')->whereDoesntHave('ledTeams')->get();
         $allUsers = User::all();
         return view('admin.teams-create', compact('leaders', 'allUsers'));
     }
@@ -104,7 +104,7 @@ class TeamController extends Controller
         $team = Team::with('leader', 'members')->findOrFail($id);
         $leaders = User::where('role', 'Team Leader')
             ->where(function($query) use ($team) {
-                $query->whereDoesntHave('ledTeam')
+                $query->whereDoesntHave('ledTeams')
                       ->orWhere('id', $team->leader_id);
             })
             ->get();

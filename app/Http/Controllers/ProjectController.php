@@ -14,20 +14,24 @@ class ProjectController extends Controller
         $user = auth()->user();
         $query = Project::with('team', 'creator', 'members');
 
-        if ($user->role !== 'SuperAdmin' && $user->role !== 'Admin') {
+        if ($user->role === 'Employee') {
+            // Employees only see projects they are accepted members of
+            $query->whereHas('members', function($q) use ($user) {
+                $q->where('users.id', $user->id)
+                  ->where('project_user.status', 'accepted');
+            });
+        } elseif ($user->role === 'Team Leader') {
+            // Team Leaders see projects they lead OR are members of
             $query->where(function($q) use ($user) {
-                $q->where('created_by', $user->id)
+                $teamIds = \App\Models\Team::where('leader_id', $user->id)->pluck('id');
+                $q->whereIn('team_id', $teamIds)
                   ->orWhereHas('members', function($q) use ($user) {
                       $q->where('users.id', $user->id)
                         ->where('project_user.status', 'accepted');
                   });
-                
-                if ($user->role === 'Team Leader') {
-                    $teamIds = \App\Models\Team::where('leader_id', $user->id)->pluck('id');
-                    $q->orWhereIn('team_id', $teamIds);
-                }
             });
         }
+        // SuperAdmin and Admin see all projects (no filtering)
 
         $projects = $query->latest()->get();
         

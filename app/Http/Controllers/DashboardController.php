@@ -17,15 +17,15 @@ class DashboardController extends Controller
         $taskQuery = Task::with('project', 'assignee', 'creator', 'updater');
         $teamMemberQuery = User::whereHas('teams');
 
-        if ($user->role !== 'SuperAdmin' && $user->role !== 'Admin') {
-            // Get IDs of teams the user is involved in
-            $teamIds = $user->teams->pluck('id')->toArray();
-            if ($user->role === 'Team Leader') {
-                $ledTeamIds = \App\Models\Team::where('leader_id', $user->id)->pluck('id')->toArray();
-                $teamIds = array_unique(array_merge($teamIds, $ledTeamIds));
-            }
+        // Identify accessible teams
+        $teamIds = $user->teams->pluck('id')->toArray();
+        if ($user->isTeamLeader()) {
+            $ledTeamIds = $user->ledTeams->pluck('id')->toArray();
+            $teamIds = array_unique(array_merge($teamIds, $ledTeamIds));
+        }
 
-            // Filter Projects
+        if (!$user->isAdmin()) {
+            // Filter Projects: created by user, OR member of, OR in user's teams
             $projectQuery->where(function($q) use ($user, $teamIds) {
                 $q->where('created_by', $user->id)
                   ->orWhereHas('members', function($mq) use ($user) {
@@ -55,16 +55,39 @@ class DashboardController extends Controller
                     $q->whereIn('teams.id', $teamIds);
                 });
             } else {
-                // If user has no team, they only see themselves
                 $teamMemberQuery->where('id', $user->id);
             }
         }
 
         $projects = $projectQuery->latest()->get();
         $tasks = $taskQuery->latest()->get();
-        $teamMembers = $teamMemberQuery->latest()->get();
+        
+        // Finalize Team Members with scoped stats
+        $teamMembers = $teamMemberQuery->latest()->get()->map(function($member) use ($projects) {
+            $projectIds = $projects->pluck('id')->toArray();
+            
+            $member->dashboard_completed_tasks = Task::where('assigned_to', $member->id)
+                ->whereIn('project_id', $projectIds)
+                ->where('status', 'Completed')
+                ->count();
+                
+            $member->dashboard_active_tasks = Task::where('assigned_to', $member->id)
+                ->whereIn('project_id', $projectIds)
+                ->whereIn('status', ['To Do', 'In Progress', 'Review'])
+                ->count();
+                
+            return $member;
+        });
 
-        return view('dashboard.index', compact('projects', 'tasks', 'teamMembers'));
+        // Pre-calculate stats for the view
+        $stats = [
+            'total_projects' => $projects->count(),
+            'active_tasks' => $tasks->whereIn('status', ['To Do', 'In Progress', 'Review'])->count(),
+            'completed_tasks' => $tasks->where('status', 'Completed')->count(),
+            'team_members_count' => $teamMembers->count(),
+        ];
+
+        return view('dashboard.index', compact('projects', 'tasks', 'teamMembers', 'stats'));
     }
 
     public function myTasks()

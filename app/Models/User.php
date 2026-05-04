@@ -93,8 +93,8 @@ class User extends Authenticatable
         return $this->role === 'Employee';
     }
 
-    public function ledTeam()
+    public function ledTeams()
     {
-        return $this->hasOne(Team::class, 'leader_id');
+        return $this->hasMany(Team::class, 'leader_id');
     }
 }
