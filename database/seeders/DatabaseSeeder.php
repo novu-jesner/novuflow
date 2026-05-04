@@ -19,145 +19,103 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create users with different roles
-        $admin = User::create([
-            'name' => 'John Doe',
+        // 1. Create 2 admins
+        $admin1 = User::create([
+            'name' => 'John Admin',
             'email' => 'admin@example.com',
             'password' => Hash::make('password'),
             'role' => 'SuperAdmin',
         ]);
 
-        $teamLeader = User::create([
-            'name' => 'Sarah Smith',
-            'email' => 'leader@example.com',
+        $admin2 = User::create([
+            'name' => 'Jane Admin',
+            'email' => 'jane@example.com',
+            'password' => Hash::make('password'),
+            'role' => 'Admin',
+        ]);
+
+        $teamLeader1 = User::create([
+            'name' => 'Sarah Leader',
+            'email' => 'sarah@example.com',
             'password' => Hash::make('password'),
             'role' => 'Team Leader',
         ]);
 
-        $employee1 = User::create([
-            'name' => 'Mike Johnson',
-            'email' => 'employee1@example.com',
+        $teamLeader2 = User::create([
+            'name' => 'Mike Leader',
+            'email' => 'mike@example.com',
             'password' => Hash::make('password'),
-            'role' => 'Employee',
+            'role' => 'Team Leader',
         ]);
 
-        $employee2 = User::create([
-            'name' => 'Emily Davis',
-            'email' => 'employee2@example.com',
-            'password' => Hash::make('password'),
-            'role' => 'Employee',
+        // 2. Create additional employees - each will be in only one team
+        $employees = [];
+        for ($i = 1; $i <= 8; $i++) {
+            $employees[] = User::factory()->create(['role' => 'Employee']);
+        }
+        $allEmployees = collect($employees);
+        $allUsers = collect([$admin1, $admin2, $teamLeader1, $teamLeader2])->concat($allEmployees);
+
+        // 3. Create 2 teams with specific leaders
+        $team1 = Team::create([
+            'name' => 'Engineering Team',
+            'description' => 'Software development team',
+            'leader_id' => $teamLeader1->id,
         ]);
 
-        // Create teams
-        $devTeam = Team::create([
-            'name' => 'Development Team',
-            'description' => 'Frontend and backend developers',
-            'leader_id' => $teamLeader->id,
-        ]);
-
-        $designTeam = Team::create([
+        $team2 = Team::create([
             'name' => 'Design Team',
-            'description' => 'UI/UX designers and creative team',
-            'leader_id' => $teamLeader->id,
+            'description' => 'UI/UX design team',
+            'leader_id' => $teamLeader2->id,
         ]);
 
-        // Assign users to teams
-        $devTeam->members()->attach([$admin->id, $teamLeader->id, $employee1->id]);
-        $designTeam->members()->attach([$employee2->id]);
+        // 4. Assign employees to teams - each employee in only ONE team
+        // First 4 employees go to team1, remaining 4 go to team2
+        $team1Members = $allEmployees->slice(0, 4);
+        $team2Members = $allEmployees->slice(4, 4);
 
-        // Create projects
-        $project1 = Project::create([
-            'name' => 'Website Redesign',
-            'description' => 'Complete redesign of the company website',
-            'status' => 'Active',
-            'start_date' => '2024-01-01',
-            'due_date' => '2024-06-30',
-            'progress' => 65,
-            'team_id' => $devTeam->id,
-            'created_by' => $admin->id,
-        ]);
+        // Sync members to teams (team leader + 4 employees = 5 members each)
+        $team1->members()->sync($team1Members->pluck('id')->push($teamLeader1->id)->toArray());
+        $team2->members()->sync($team2Members->pluck('id')->push($teamLeader2->id)->toArray());
 
-        $project2 = Project::create([
-            'name' => 'Mobile App Development',
-            'description' => 'Native mobile application for iOS and Android',
-            'status' => 'Active',
-            'start_date' => '2024-02-01',
-            'due_date' => '2024-08-31',
-            'progress' => 40,
-            'team_id' => $devTeam->id,
-            'created_by' => $admin->id,
-        ]);
+        $teams = collect([$team1, $team2]);
 
-        $project3 = Project::create([
-            'name' => 'Brand Identity',
-            'description' => 'New brand identity and style guide',
-            'status' => 'Active',
-            'start_date' => '2024-01-15',
-            'due_date' => '2024-04-30',
-            'progress' => 80,
-            'team_id' => $designTeam->id,
-            'created_by' => $admin->id,
-        ]);
+        // 5. Create projects for each team (only team members, no external users)
+        foreach ($teams as $team) {
+            $team->load('members');
+            $teamMembers = $team->members;
+            
+            $project = Project::factory()->create([
+                'team_id' => $team->id,
+                'created_by' => $team->leader_id,
+            ]);
 
-        // Assign members to projects
-        $project1->members()->attach([$admin->id, $teamLeader->id, $employee1->id]);
-        $project2->members()->attach([$teamLeader->id, $employee1->id]);
-        $project3->members()->attach([$employee2->id]);
+            foreach ($teamMembers as $member) {
+                $project->members()->attach($member->id, ['status' => 'accepted']);
+            }
 
-        // Create tasks
-        Task::create([
-            'title' => 'Design homepage mockup',
-            'description' => 'Create initial mockups for the homepage',
-            'status' => 'Completed',
-            'priority' => 'High',
-            'due_date' => '2024-02-15',
-            'project_id' => $project1->id,
-            'assigned_to' => $employee1->id,
-            'created_by' => $teamLeader->id,
-        ]);
+            // Create default columns
+            $columns = ['To Do', 'In Progress', 'Review', 'Completed'];
+            foreach ($columns as $index => $name) {
+                \DB::table('project_columns')->insert([
+                    'project_id' => $project->id,
+                    'name' => $name,
+                    'order' => $index,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
 
-        Task::create([
-            'title' => 'Implement authentication',
-            'description' => 'Set up user authentication system',
-            'status' => 'In Progress',
-            'priority' => 'High',
-            'due_date' => '2024-03-01',
-            'project_id' => $project1->id,
-            'assigned_to' => $teamLeader->id,
-            'created_by' => $admin->id,
-        ]);
+            // Create tasks
+            for ($j = 0; $j < 10; $j++) {
+                $assignee = $teamMembers->random();
+                Task::factory()->create([
+                    'project_id' => $project->id,
+                    'assigned_to' => $assignee->id,
+                    'created_by' => $team->leader_id,
+                ]);
+            }
+        }
 
-        Task::create([
-            'title' => 'Database design',
-            'description' => 'Design and implement database schema',
-            'status' => 'To Do',
-            'priority' => 'Medium',
-            'due_date' => '2024-03-15',
-            'project_id' => $project2->id,
-            'assigned_to' => $employee1->id,
-            'created_by' => $teamLeader->id,
-        ]);
-
-        Task::create([
-            'title' => 'Create logo concepts',
-            'description' => 'Design 5 different logo concepts',
-            'status' => 'Review',
-            'priority' => 'High',
-            'due_date' => '2024-02-20',
-            'project_id' => $project3->id,
-            'assigned_to' => $employee2->id,
-            'created_by' => $admin->id,
-        ]);
-
-        Task::create([
-            'title' => 'API documentation',
-            'description' => 'Document all API endpoints',
-            'status' => 'To Do',
-            'priority' => 'Low',
-            'due_date' => '2024-04-01',
-            'project_id' => $project2->id,
-            'assigned_to' => $teamLeader->id,
-            'created_by' => $admin->id,
-        ]);
     }
 }
