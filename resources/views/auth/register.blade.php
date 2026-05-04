@@ -4,7 +4,7 @@
 <div class="w-full bg-white rounded-lg shadow-lg">
     <div class="space-y-1 text-center p-6">
         <div class="flex justify-center mb-4">
-            <img src="{{ asset('build/assets/novuflow_logo.png') }}" alt="NovuFlow Logo" class="h-12 w-auto">
+            <img src="{{ asset('assets/novuflow_logo.png') }}" alt="NovuFlow Logo" class="h-12 w-auto">
         </div>
         <h1 class="text-2xl font-bold">Create an Account</h1>
         <p class="text-gray-600">Get started with NovuFlow today</p>
