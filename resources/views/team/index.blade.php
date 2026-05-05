@@ -19,7 +19,7 @@
             <h1 class="text-3xl font-semibold text-gray-900">{{ $team ? $team->name : 'Team' }}</h1>
             <p class="text-gray-600 mt-1">{{ $team ? ($team->description ?? 'Manage your team members and their roles') : 'Manage your team members and their roles' }}</p>
         </div>
-        @if($team)
+       @if($team && auth()->user()->role !== 'Employee')
         <button @click="showInviteModal = true" class="bg-gradient-to-r from-[#3f8caf] to-[#54acc8] text-white px-4 py-2 rounded-md hover:from-[#2a6a95] hover:to-[#3f8caf] transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline mr-2">
                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
@@ -75,6 +75,7 @@
         <div class="p-6">
             <div class="space-y-3">
                 @forelse($members as $member)
+                  
                 @php
                     $tasksCompleted = \App\Models\Task::where('assigned_to', $member->id)->where('status', 'Completed')->count();
                     $activeTasks = \App\Models\Task::where('assigned_to', $member->id)->whereIn('status', ['To Do', 'In Progress', 'Review'])->count();
@@ -118,7 +119,22 @@
                                     @if(auth()->user()->role === 'SuperAdmin')
                                     <a href="{{ route('admin.users.edit', $member->id) }}" class="block px-4 py-2 text-sm hover:bg-gray-50">Change Role</a>
                                     @endif
-                                    <button type="button" @click="ajaxDelete('{{ route('team.member.remove', $member->id) }}', { onSuccess: () => { show = false; open = false; } })" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50">Remove Member</button>
+                                    @if(
+    auth()->user()->role !== 'Employee' &&
+    !(
+        auth()->user()->role === 'Team Leader' &&
+        in_array($member->role, ['Admin', 'SuperAdmin'])
+    )
+)
+
+<button type="button"
+  @click="ajaxDelete('{{ route('team.member.remove', $member->id) }}', {
+      onSuccess: () => { show = false; open = false; }
+  })"
+  class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50">
+  Remove Member
+</button>
+@endif
                                 </div>
                             </div>
                         </div>

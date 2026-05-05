@@ -82,8 +82,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/team/members/{id}/profile', [TeamController::class, 'memberProfile'])->name('team.member.profile');
     Route::post('/dashboard/team/members/{id}/tasks', [TeamController::class, 'assignTasks'])->name('team.member.tasks');
     Route::post('/dashboard/team/members/{id}/role', [TeamController::class, 'changeRole'])->name('team.member.role');
-    Route::delete('/dashboard/team/members/{id}', [TeamController::class, 'removeMember'])->name('team.member.remove');
-
+   Route::delete('/dashboard/team/members/{id}', [TeamController::class, 'removeMember'])
+    ->name('team.member.remove');
     // Employee Tasks
     Route::get('/dashboard/my-tasks', [DashboardController::class, 'myTasks'])->name('employee.tasks');
 
