@@ -79,6 +79,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Task Comments
     Route::post('/dashboard/tasks/{id}/comments', [TaskCommentController::class, 'store'])->name('tasks.comments.store');
+    Route::patch('/dashboard/tasks/{taskId}/comments/{commentId}', [TaskCommentController::class, 'update'])->name('tasks.comments.update');
     Route::delete('/dashboard/tasks/{taskId}/comments/{commentId}', [TaskCommentController::class, 'destroy'])->name('tasks.comments.destroy');
     Route::delete('/dashboard/tasks/comments/attachments/{attachmentId}', [TaskCommentController::class, 'deleteAttachment'])->name('tasks.comments.attachments.destroy');
 
