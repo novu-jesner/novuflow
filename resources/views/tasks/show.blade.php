@@ -163,14 +163,22 @@
                     'url' => $a->url,
                     'is_image' => $a->isImage(),
                 ]),
-                'can_delete' => auth()->id() === $r->user_id || in_array(auth()->user()->role, ['SuperAdmin','Admin','Team Leader']),
+                'can_delete' => auth()->id() === $r->user_id,
+                'can_edit'   => auth()->id() === $r->user_id,
+                'is_edited'  => $r->updated_at->gt($r->created_at),
             ]),
-            'can_delete' => auth()->id() === $c->user_id || in_array(auth()->user()->role, ['SuperAdmin','Admin','Team Leader']),
+            'can_delete' => auth()->id() === $c->user_id,
+            'can_edit'   => auth()->id() === $c->user_id,
+            'is_edited'  => $c->updated_at->gt($c->created_at),
         ])->values()->toJson() }},
         newComment: '',
         replyingTo: null,
         selectedFiles: [],
         isSubmitting: false,
+        editingComment: null,
+        editBody: '',
+        showAllComments: false,
+        commentLimit: 5,
         init() {
             this.$nextTick(() => {
                 if (window.location.hash) {
@@ -253,7 +261,44 @@
             } catch(e) {
                 $store.toast.show('Network error', 'error');
             }
-            this.isSubmitting = false;
+        },
+        startEdit(comment) {
+            this.editingComment = comment;
+            this.editBody = comment.body;
+            this.$nextTick(() => {
+                const textarea = document.getElementById('edit-textarea-' + comment.id);
+                if (textarea) textarea.focus();
+            });
+        },
+        cancelEdit() {
+            this.editingComment = null;
+            this.editBody = '';
+        },
+        async updateComment() {
+            if (!this.editBody.trim() || !this.editingComment) return;
+            const commentId = this.editingComment.id;
+            try {
+                const res = await fetch('/dashboard/tasks/{{ $task->id }}/comments/' + commentId, {
+                    method: 'PATCH',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ body: this.editBody })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    this.editingComment.body = data.comment.body;
+                    this.editingComment.is_edited = true;
+                    this.cancelEdit();
+                    $store.toast.show('Comment updated', 'success');
+                } else {
+                    $store.toast.show(data.message || 'Update failed', 'error');
+                }
+            } catch(e) {
+                $store.toast.show('Network error', 'error');
+            }
         },
         async deleteComment(commentId) {
             if (!confirm('Delete this comment?')) return;
@@ -404,8 +449,9 @@
                 </div>
             </template>
 
-            <template x-for="comment in comments" :key="comment.id">
-                <div class="pt-6 first:pt-0 border-b last:border-0 pb-6">
+            <div class="divide-y divide-gray-100">
+                <template x-for="(comment, index) in (showAllComments ? comments : comments.slice(0, commentLimit))" :key="comment.id">
+                    <div class="py-6 first:pt-0">
                     <div :id="'comment-' + comment.id" class="flex gap-3 group target:bg-blue-50 target:ring-2 target:ring-blue-100 target:rounded-xl p-2 transition-all duration-500 w-full min-w-0">
                         <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#3f8caf] to-[#54acc8] flex items-center justify-center text-white text-base font-bold shrink-0 shadow-sm"
                              x-text="comment.user.initials"></div>
@@ -413,7 +459,12 @@
                             <div class="flex items-center justify-between gap-2 mb-1.5">
                                 <div class="flex items-center gap-2">
                                     <span class="text-sm font-bold text-gray-900" x-text="comment.user.name"></span>
-                                    <span class="text-[11px] text-gray-400 font-medium" x-text="comment.created_at"></span>
+                                    <div class="flex items-center gap-1">
+                                        <span class="text-[11px] text-gray-400 font-medium" x-text="comment.created_at"></span>
+                                        <template x-if="comment.is_edited">
+                                            <span class="text-[10px] text-gray-300 font-normal">(edited)</span>
+                                        </template>
+                                    </div>
                                 </div>
                                 <div class="flex items-center gap-1">
                                     <button
@@ -425,18 +476,44 @@
                                         </svg>
                                         <span class="text-xs font-medium">Reply</span>
                                     </button>
-                                    <button
-                                        x-show="comment.can_delete"
-                                        @click="deleteComment(comment.id)"
-                                        class="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-50 text-gray-300 hover:text-red-500">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                                        </svg>
-                                    </button>
+                                    <div class="flex items-center gap-1">
+                                        <button
+                                            x-show="comment.can_edit"
+                                            @click="startEdit(comment)"
+                                            class="p-1 rounded hover:bg-blue-50 text-gray-300 hover:text-blue-500 transition-colors"
+                                            title="Edit">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                            </svg>
+                                        </button>
+                                        <button
+                                            x-show="comment.can_delete"
+                                            @click="deleteComment(comment.id)"
+                                            class="p-1 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors"
+                                            title="Delete">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="block w-full min-w-0" x-show="comment.body && comment.body.trim().length > 0">
+                            <div class="block w-full min-w-0" x-show="comment.body && comment.body.trim().length > 0 && editingComment?.id !== comment.id">
                                 <p class="comment-body text-[15px] text-gray-800 leading-relaxed mb-1" x-text="comment.body"></p>
+                            </div>
+
+                            <!-- Edit Mode for Comment -->
+                            <div x-show="editingComment?.id === comment.id" class="mt-2">
+                                <textarea 
+                                    :id="'edit-textarea-' + comment.id"
+                                    x-model="editBody"
+                                    class="w-full p-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none bg-white"
+                                    rows="3"
+                                ></textarea>
+                                <div class="flex justify-end gap-2 mt-2">
+                                    <button @click="cancelEdit()" class="px-3 py-1 text-xs text-gray-500 hover:text-gray-700">Cancel</button>
+                                    <button @click="updateComment()" class="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">Save Changes</button>
+                                </div>
                             </div>
                             
                             <!-- Attachments Display -->
@@ -496,7 +573,12 @@
                                             <div class="flex items-center justify-between gap-2 mb-0.5">
                                                 <div class="flex items-center gap-1.5">
                                                     <span class="text-[13px] font-bold text-gray-800" x-text="reply.user.name"></span>
-                                                    <span class="text-[10px] text-gray-400 font-medium" x-text="reply.created_at"></span>
+                                                    <div class="flex items-center gap-1">
+                                                        <span class="text-[10px] text-gray-400 font-medium" x-text="reply.created_at"></span>
+                                                        <template x-if="reply.is_edited">
+                                                            <span class="text-[10px] text-gray-300 font-normal">(edited)</span>
+                                                        </template>
+                                                    </div>
                                                 </div>
                                                 <div class="flex items-center gap-1">
                                                     <button
@@ -508,18 +590,44 @@
                                                         </svg>
                                                         <span class="text-xs font-medium">Reply</span>
                                                     </button>
-                                                    <button
-                                                        x-show="reply.can_delete"
-                                                        @click="deleteComment(reply.id)"
-                                                        class="opacity-0 group-hover/reply:opacity-100 transition-opacity p-1 rounded hover:bg-red-50 text-gray-300 hover:text-red-500">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                            <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                                                        </svg>
-                                                    </button>
+                                                    <div class="flex items-center gap-1">
+                                                        <button
+                                                            x-show="reply.can_edit"
+                                                            @click="startEdit(reply)"
+                                                            class="p-1 rounded hover:bg-blue-50 text-gray-300 hover:text-blue-500 transition-colors"
+                                                            title="Edit">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                                            </svg>
+                                                        </button>
+                                                        <button
+                                                            x-show="reply.can_delete"
+                                                            @click="deleteComment(reply.id)"
+                                                            class="p-1 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors"
+                                                            title="Delete">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                                <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                                                            </svg>
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div class="block w-full min-w-0" x-show="reply.body && reply.body.trim().length > 0">
+                                            <div class="block w-full min-w-0" x-show="reply.body && reply.body.trim().length > 0 && editingComment?.id !== reply.id">
                                                 <p class="comment-body text-[13px] text-gray-700 bg-gray-100/60 rounded-lg px-3 py-2 border border-gray-100/50" x-text="reply.body"></p>
+                                            </div>
+
+                                            <!-- Edit Mode for Reply -->
+                                            <div x-show="editingComment?.id === reply.id" class="mt-2">
+                                                <textarea 
+                                                    :id="'edit-textarea-' + reply.id"
+                                                    x-model="editBody"
+                                                    class="w-full p-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none bg-white"
+                                                    rows="2"
+                                                ></textarea>
+                                                <div class="flex justify-end gap-2 mt-1.5">
+                                                    <button @click="cancelEdit()" class="px-2 py-0.5 text-xs text-gray-500 hover:text-gray-700">Cancel</button>
+                                                    <button @click="updateComment()" class="px-2 py-0.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">Save</button>
+                                                </div>
                                             </div>
                                             
                                             <!-- Attachments Display -->
@@ -554,6 +662,18 @@
                             </div>
                         </template>
                     </div>
+                </template>
+            </div>
+
+            <!-- See More Button -->
+            <template x-if="!showAllComments && comments.length > commentLimit">
+                <div class="mt-4 text-center">
+                    <button @click="showAllComments = true" class="inline-flex items-center gap-2 px-6 py-2 bg-gray-50 hover:bg-gray-100 text-gray-600 text-sm font-medium rounded-full border border-gray-200 transition-all hover:shadow-sm group">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-hover:translate-y-0.5 transition-transform">
+                            <path d="m7 13 5 5 5-5M7 6l5 5 5-5"/>
+                        </svg>
+                        <span>View <span x-text="comments.length - commentLimit"></span> earlier comments</span>
+                    </button>
                 </div>
             </template>
         </div>
