@@ -49,4 +49,9 @@ class Project extends Model
     {
         return $this->hasMany(ProjectColumn::class)->orderBy('order');
     }
+
+    public function comments()
+    {
+        return $this->hasManyThrough(TaskComment::class, Task::class);
+    }
 }
