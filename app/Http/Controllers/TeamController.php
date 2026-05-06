@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 
 class TeamController extends Controller
 {
+
     public function index($id = null)
     {
         $user = auth()->user();
@@ -158,24 +159,37 @@ class TeamController extends Controller
         return redirect()->route('admin.teams')->with('success', 'Team deleted successfully!');
     }
 
-    public function inviteMember(Request $request)
-    {
-        $validated = $request->validate([
-            'email' => 'required|email|exists:users,email',
-            'team_id' => 'required|exists:teams,id',
-        ]);
+public function inviteMember(Request $request)
+{
+    $authUser = auth()->user();
 
-        $user = User::where('email', $validated['email'])->first();
-        $team = Team::findOrFail($validated['team_id']);
-
-        $team->members()->attach($user->id);
-
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Member invited successfully!']);
-        }
-
-        return back()->with('success', 'Member invited successfully!');
+    if ($authUser->role === 'Employee') {
+        abort(403, 'You are not allowed to add members.');
     }
+
+    $validated = $request->validate([
+        'email' => 'required|email|exists:users,email',
+        'team_id' => 'required|exists:teams,id',
+    ]);
+
+    $user = User::where('email', $validated['email'])->firstOrFail();
+    $team = Team::findOrFail($validated['team_id']);
+
+    if ($team->members()->where('users.id', $user->id)->exists()) {
+        abort(409, 'User is already a team member.');
+    }
+
+    if ($authUser->role === 'Team Leader' &&
+        in_array($user->role, ['Admin', 'SuperAdmin'])) {
+        abort(403, 'You cannot add admin users.');
+    }
+
+    $team->members()->syncWithoutDetaching($user->id);
+
+    return $request->expectsJson()
+        ? response()->json(['success' => true, 'message' => 'Member invited successfully!'])
+        : back()->with('success', 'Member invited successfully!');
+}
 
     public function memberProfile($id)
     {
@@ -214,20 +228,35 @@ class TeamController extends Controller
 
         return back()->with('success', 'Role changed successfully!');
     }
+public function removeMember($id)
+{
+    $authUser = auth()->user();
 
-    public function removeMember($id)
-    {
-        $user = User::findOrFail($id);
-        $team = auth()->user()->teams()->first();
-        
-        if ($team) {
-            $team->members()->detach($user->id);
-        }
+    $team = $authUser->teams()->first();
 
-        if (request()->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Member removed successfully!']);
-        }
-
-        return back()->with('success', 'Member removed successfully!');
+    if (! $team) {
+        abort(403, 'You are not assigned to any team.');
     }
+
+    $user = $team->members()->where('users.id', $id)->first();
+
+    if (! $user) {
+        abort(404, 'Member not found in your team.');
+    }
+
+    if ($authUser->role === 'Team Leader' &&
+        in_array($user->role, ['Admin', 'SuperAdmin'])) {
+        abort(403, 'You cannot remove admin users.');
+    }
+
+    $team->members()->detach($user->id);
+
+    if (request()->expectsJson()) {
+    return response()->json([
+        'message' => 'Member removed successfully!'
+    ]);
+}
+
+return back()->with('success', 'Member removed successfully!');
+}
 }
