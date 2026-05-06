@@ -6,6 +6,8 @@ use App\Models\Project;
 use App\Models\Task;
 use App\Models\ProjectColumn;
 use Illuminate\Http\Request;
+use App\Models\Team;
+use App\Models\User;
 
 class ProjectController extends Controller
 {
@@ -48,62 +50,133 @@ class ProjectController extends Controller
         return view('projects.index', compact('projects', 'userTeam', 'teamMembers'));
     }
 
-    public function create()
-    {
-        $teams = \App\Models\Team::with('members')->get();
-        return view('projects.create', compact('teams'));
+
+public function create()
+{
+    $authUser = auth()->user();
+
+    // ❌ Block Employee
+    if ($authUser->isEmployee()) {
+            return redirect()->route('projects.index')
+    ->with('error', 'You are not allowed to create projects.');
     }
 
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'status' => 'required|in:Active,Completed,On Hold',
-            'start_date' => 'required|date',
-            'due_date' => 'required|date|after:start_date',
-            'team_id' => 'nullable|exists:teams,id',
-            'member_ids' => 'nullable|array',
-            'member_ids.*' => 'exists:users,id',
-        ]);
+    // ✅ Admin → all teams
+    if ($authUser->isAdmin()) {
+        $teams = Team::with('members')->get();
+    } 
+    // ✅ Team Leader → only their team
+    elseif ($authUser->isTeamLeader()) {
+        $teams = Team::where('leader_id', $authUser->id)
+            ->with('members')
+            ->get();
 
-        $project = Project::create([
-            'name' => $validated['name'],
-            'description' => $validated['description'],
-            'status' => $validated['status'],
-            'start_date' => $validated['start_date'],
-            'due_date' => $validated['due_date'],
-            'progress' => 0,
-            'team_id' => $validated['team_id'],
-            'created_by' => auth()->id(),
-        ]);
+        // 🚨 IMPORTANT: handle no team case
+        if ($teams->isEmpty()) {
+            return redirect()->back()
+                ->with('error', 'You do not have a team assigned.');
+        }
+    }
 
-        if (!empty($validated['member_ids'])) {
-            foreach ($validated['member_ids'] as $userId) {
-                $project->members()->attach($userId, ['status' => 'pending']);
-                
-                $user = \App\Models\User::find($userId);
-                if ($user) {
-                    $user->notify(new \App\Notifications\ProjectInvite($project));
-                }
+    return view('projects.create', compact('teams'));
+}
+
+public function store(Request $request)
+{
+    $authUser = auth()->user();
+
+    // ❌ Block Employees
+    if ($authUser->isEmployee()) {
+        
+        return redirect()->route('projects.index')
+    ->with('error', 'You are not allowed to create projects.');
+    }
+
+    // ✅ Validate
+    $validated = $request->validate([
+        'name' => 'required|string|max:255',
+        'description' => 'nullable|string',
+        'status' => 'required|in:Active,Completed,On Hold',
+        'start_date' => 'required|date',
+        'due_date' => 'required|date|after:start_date',
+        'team_id' => 'nullable|exists:teams,id',
+        'member_ids' => 'nullable|array',
+        'member_ids.*' => 'exists:users,id',
+    ]);
+
+    // ✅ TEAM VALIDATION FIRST (before create)
+
+    // Team Leader restriction
+    if ($authUser->isTeamLeader()) {
+        $team = Team::where('leader_id', $authUser->id)->first();
+
+        if (!$team) {
+            abort(403, 'You do not have a team.');
+        }
+
+        // ❗ Force correct team_id
+        if (empty($validated['team_id']) || $validated['team_id'] != $team->id) {
+            abort(403, 'You can only create projects for your own team.');
+        }
+    }
+
+    // ✅ Validate members belong to team
+    if (!empty($validated['team_id']) && !empty($validated['member_ids'])) {
+        $teamMembers = Team::find($validated['team_id'])
+            ->members()
+            ->pluck('users.id')
+            ->toArray();
+
+        foreach ($validated['member_ids'] as $userId) {
+            if (!in_array($userId, $teamMembers)) {
+                abort(403, 'You can only assign members from your team.');
             }
         }
-
-        // Create default columns
-        $defaultColumns = ['To Do', 'In Progress', 'Review', 'Completed'];
-        foreach ($defaultColumns as $index => $name) {
-            $project->columns()->create([
-                'name' => $name,
-                'order' => $index,
-            ]);
-        }
-
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Project created successfully!', 'redirect' => route('projects.index')]);
-        }
-
-        return redirect()->route('projects.index')->with('success', 'Project created successfully!');
     }
+
+    // ✅ NOW SAFE TO CREATE
+    $project = Project::create([
+        'name' => $validated['name'],
+        'description' => $validated['description'],
+        'status' => $validated['status'],
+        'start_date' => $validated['start_date'],
+        'due_date' => $validated['due_date'],
+        'progress' => 0,
+        'team_id' => $validated['team_id'],
+        'created_by' => $authUser->id,
+    ]);
+
+    // ✅ Attach members
+    if (!empty($validated['member_ids'])) {
+        foreach ($validated['member_ids'] as $userId) {
+            $project->members()->attach($userId, ['status' => 'pending']);
+
+            $user = User::find($userId);
+            if ($user) {
+                $user->notify(new \App\Notifications\ProjectInvite($project));
+            }
+        }
+    }
+
+    // ✅ Default columns
+    foreach (['To Do', 'In Progress', 'Review', 'Completed'] as $index => $name) {
+        $project->columns()->create([
+            'name' => $name,
+            'order' => $index,
+        ]);
+    }
+
+    if ($request->expectsJson()) {
+    return response()->json([
+        'success' => true,
+        'message' => 'Project created successfully!',
+        'project' => $project
+    ]);
+}
+
+    return redirect()->route('projects.index')
+    ->with('success', 'Project created successfully!');
+}
 
     public function show($id)
     {
