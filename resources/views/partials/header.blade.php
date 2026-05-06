@@ -18,6 +18,38 @@
             ];
         })->toJson() }}, 
         unreadCount: {{ auth()->user()->unreadNotifications()->count() }},
+        init() {
+            if (window.Echo) {
+                window.Echo.private('App.Models.User.{{ auth()->id() }}')
+                    .notification((notification) => {
+                        // Prepend the new notification to the list
+                        this.notifications.unshift({
+                            id: notification.id,
+                            title: notification.title,
+                            message: notification.message,
+                            comment_body: notification.comment_body,
+                            type: notification.type,
+                            project_id: notification.project_id,
+                            task_id: notification.task_id,
+                            comment_id: notification.comment_id,
+                            read: false,
+                            createdAt: new Date().toISOString()
+                        });
+                        
+                        // Keep only the last 10 for the dropdown
+                        if (this.notifications.length > 10) {
+                            this.notifications.pop();
+                        }
+                        
+                        this.unreadCount++;
+                        
+                        // Show a toast
+                        if (window.Alpine && Alpine.store('toast')) {
+                            Alpine.store('toast').show(notification.message, 'info');
+                        }
+                    });
+            }
+        },
         async markAsRead(id) {
             const n = this.notifications.find(notif => notif.id === id);
             if (n) {
@@ -44,6 +76,19 @@
                     window.location.href = `/dashboard/tasks/${n.task_id}#comment-${n.comment_id}`;
                 }
             }
+        },
+        async markAllRead() {
+            try {
+                await fetch('/notifications/mark-all-read', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    }
+                });
+                this.notifications.forEach(n => n.read = true);
+                this.unreadCount = 0;
+            } catch (e) { console.error(e); }
         }
     }">
     <!-- Mobile menu -->
@@ -114,22 +159,61 @@
                  x-transition:enter-end="opacity-100 scale-100"
                  @click.away="open = false" 
                  class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-100 z-50 overflow-hidden" style="display: none;">
-                <div class="px-4 py-3 border-b bg-gray-50/50 font-semibold text-sm">Notifications</div>
+                <div class="px-4 py-3 border-b bg-gray-50/50 flex items-center justify-between">
+                    <span class="font-semibold text-sm text-gray-900">Notifications</span>
+                    <button x-show="unreadCount > 0" @click="markAllRead()" class="text-[11px] font-medium text-[#3f8caf] hover:text-[#2a6a95] transition-colors">
+                        Mark all as read
+                    </button>
+                </div>
                 <div class="max-h-96 overflow-y-auto">
                     <template x-for="notification in notifications" :key="notification.id">
-                        <div class="px-4 py-3 text-sm border-b last:border-0 hover:bg-gray-50 cursor-pointer" 
-                             :class="!notification.read ? 'bg-blue-50/50' : ''"
+                        <div class="px-4 py-3 text-sm border-b last:border-0 hover:bg-gray-50 cursor-pointer flex gap-3" 
+                             :class="!notification.read ? 'bg-blue-50/30' : ''"
                              @click="markAsRead(notification.id)">
-                            <div class="font-medium text-gray-900" x-text="notification.title"></div>
-                            <div class="text-gray-600 text-xs mt-1 leading-relaxed" x-text="notification.message"></div>
-                            <div x-show="notification.comment_body" class="mt-1 px-2 py-1 bg-gray-100 rounded text-[11px] text-gray-500 italic truncate" x-text="'&quot;' + notification.comment_body + '&quot;'"></div>
-                            <div class="text-gray-400 text-xs mt-1.5" x-text="new Date(notification.createdAt).toLocaleDateString()"></div>
+                            
+                            <!-- Icon based on type -->
+                            <div class="shrink-0 mt-0.5">
+                                <template x-if="notification.type === 'task_commented'">
+                                    <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                    </div>
+                                </template>
+                                <template x-if="notification.type === 'task_assigned'">
+                                    <div class="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+                                    </div>
+                                </template>
+                                <template x-if="notification.type === 'project_invite'">
+                                    <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v7"/></svg>
+                                    </div>
+                                </template>
+                                <template x-if="!['task_commented', 'task_assigned', 'project_invite'].includes(notification.type)">
+                                    <div class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="16" y2="12"/><line x1="12" x2="12.01" y1="8" y2="8"/></svg>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <div class="flex-1 min-w-0">
+                                <div class="font-medium text-gray-900 truncate" x-text="notification.title"></div>
+                                <div class="text-gray-600 text-xs mt-0.5 line-clamp-2 leading-relaxed" x-text="notification.message"></div>
+                                <div x-show="notification.comment_body" class="mt-1 px-2 py-1 bg-gray-100/50 rounded text-[10px] text-gray-500 italic truncate border border-gray-100" x-text="'&quot;' + notification.comment_body + '&quot;'"></div>
+                                <div class="text-gray-400 text-[10px] mt-1" x-text="new Date(notification.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})"></div>
+                            </div>
+
+                            <div x-show="!notification.read" class="shrink-0 mt-1.5">
+                                <div class="w-1.5 h-1.5 rounded-full bg-[#3f8caf]"></div>
+                            </div>
                         </div>
                     </template>
                     <div x-show="notifications.length === 0" class="px-4 py-8 text-center text-gray-400 text-sm">
                         No new notifications
                     </div>
                 </div>
+                <a href="{{ route('notifications.index') }}" class="block px-4 py-2 text-center text-xs font-semibold text-[#3f8caf] bg-gray-50 hover:bg-gray-100 transition-colors border-t">
+                    View All Notifications
+                </a>
             </div>
         </div>
 

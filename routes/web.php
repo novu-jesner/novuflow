@@ -7,6 +7,7 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaskCommentController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 
 // Authentication Routes
@@ -113,8 +114,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/analytics', [DashboardController::class, 'adminAnalytics'])->name('admin.analytics');
     });
 
-    Route::post('/notifications/{id}/read', function($id) {
-        auth()->user()->notifications()->where('id', $id)->update(['read_at' => now()]);
-        return response()->json(['success' => true]);
-    })->name('notifications.read');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.markAllRead');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
 });
