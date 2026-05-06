@@ -76,7 +76,16 @@ class TaskController extends Controller
 
     public function show($id)
     {
-        $task = Task::with(['project', 'assignee', 'creator', 'members', 'comments.user', 'comments.attachments'])->findOrFail($id);
+        $task = Task::with([
+            'project', 
+            'assignee', 
+            'creator', 
+            'members', 
+            'comments.user', 
+            'comments.attachments', 
+            'comments.replies.user', 
+            'comments.replies.replyTo.user'
+        ])->findOrFail($id);
         $user = auth()->user();
 
         // Determine if the current user can comment

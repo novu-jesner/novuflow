@@ -8,6 +8,7 @@
                 'id' => $n->id,
                 'title' => $n->data['title'] ?? 'Notification',
                 'message' => $n->data['message'] ?? '',
+                'comment_body' => $n->data['comment_body'] ?? null,
                 'type' => $n->data['type'] ?? 'info',
                 'project_id' => $n->data['project_id'] ?? null,
                 'task_id' => $n->data['task_id'] ?? null,
@@ -121,6 +122,7 @@
                              @click="markAsRead(notification.id)">
                             <div class="font-medium text-gray-900" x-text="notification.title"></div>
                             <div class="text-gray-600 text-xs mt-1 leading-relaxed" x-text="notification.message"></div>
+                            <div x-show="notification.comment_body" class="mt-1 px-2 py-1 bg-gray-100 rounded text-[11px] text-gray-500 italic truncate" x-text="'&quot;' + notification.comment_body + '&quot;'"></div>
                             <div class="text-gray-400 text-xs mt-1.5" x-text="new Date(notification.createdAt).toLocaleDateString()"></div>
                         </div>
                     </template>

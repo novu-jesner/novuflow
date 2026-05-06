@@ -2,6 +2,19 @@
 
 @section('dashboard-content')
 <div class="max-w-3xl mx-auto">
+    <style>
+        .comment-body {
+            word-break: break-all !important;
+            overflow-wrap: anywhere !important;
+            white-space: pre-wrap !important;
+            max-width: 100% !important;
+            display: block !important;
+        }
+        .flex-container-safe {
+            min-width: 0 !important;
+            flex: 1 1 0% !important;
+        }
+    </style>
     <div class="flex items-center gap-4 mb-6">
         <a href="{{ url()->previous() }}" class="text-gray-600 hover:text-gray-900">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -119,7 +132,7 @@
 
     <!-- Comments Section -->
     <div class="mt-6 bg-white rounded-lg shadow" x-data="{
-        comments: {{ $task->comments->map(fn($c) => [
+        comments: {{ $task->comments->whereNull('parent_id')->map(fn($c) => [
             'id'         => $c->id,
             'body'       => $c->body,
             'created_at' => $c->created_at->diffForHumans(),
@@ -130,11 +143,46 @@
                 'url' => $a->url,
                 'is_image' => $a->isImage(),
             ]),
+            'replies' => $c->replies->map(fn($r) => [
+                'id'         => $r->id,
+                'parent_id'  => $r->parent_id,
+                'reply_to_id' => $r->reply_to_id,
+                'reply_to'   => $r->replyTo ? [
+                    'user' => [
+                        'name' => $r->replyTo->user->name,
+                        'initials' => strtoupper(substr($r->replyTo->user->name, 0, 1)),
+                    ],
+                    'body' => $r->replyTo->body,
+                ] : null,
+                'body'       => $r->body,
+                'created_at' => $r->created_at->diffForHumans(),
+                'user'       => ['name' => $r->user->name, 'initials' => strtoupper(substr($r->user->name, 0, 1))],
+                'attachments' => $r->attachments->map(fn($a) => [
+                    'id' => $a->id,
+                    'name' => $a->file_name,
+                    'url' => $a->url,
+                    'is_image' => $a->isImage(),
+                ]),
+                'can_delete' => auth()->id() === $r->user_id || in_array(auth()->user()->role, ['SuperAdmin','Admin','Team Leader']),
+            ]),
             'can_delete' => auth()->id() === $c->user_id || in_array(auth()->user()->role, ['SuperAdmin','Admin','Team Leader']),
         ])->values()->toJson() }},
         newComment: '',
+        replyingTo: null,
         selectedFiles: [],
         isSubmitting: false,
+        init() {
+            this.$nextTick(() => {
+                if (window.location.hash) {
+                    const el = document.querySelector(window.location.hash);
+                    if (el) {
+                        setTimeout(() => {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }, 500);
+                    }
+                }
+            });
+        },
         handleFileSelect(e) {
             const files = Array.from(e.target.files);
             files.forEach(file => {
@@ -164,6 +212,13 @@
             
             const formData = new FormData();
             formData.append('body', this.newComment);
+            if (this.replyingTo) {
+                // The parent_id is the root comment ID (top-level threading)
+                const parentId = this.replyingTo.parent_id || this.replyingTo.id;
+                formData.append('parent_id', parentId);
+                // The reply_to_id is the specific message being clicked
+                formData.append('reply_to_id', this.replyingTo.id);
+            }
             this.selectedFiles.forEach(f => {
                 formData.append('attachments[]', f.file);
             });
@@ -179,8 +234,17 @@
                 });
                 const data = await res.json();
                 if (data.success) {
-                    this.comments.unshift(data.comment);
+                    if (data.comment.parent_id) {
+                        const parent = this.comments.find(c => c.id == data.comment.parent_id);
+                        if (parent) {
+                            if (!parent.replies) parent.replies = [];
+                            parent.replies.push(data.comment);
+                        }
+                    } else {
+                        this.comments.unshift(data.comment);
+                    }
                     this.newComment = '';
+                    this.replyingTo = null;
                     this.selectedFiles = [];
                     $store.toast.show('Comment posted', 'success');
                 } else {
@@ -202,7 +266,17 @@
                     }
                 });
                 if (res.ok) {
-                    this.comments = this.comments.filter(c => c.id !== commentId);
+                    // Remove from top-level or from any replies array
+                    const isTopLevel = this.comments.some(c => c.id === commentId);
+                    if (isTopLevel) {
+                        this.comments = this.comments.filter(c => c.id !== commentId);
+                    } else {
+                        this.comments.forEach(c => {
+                            if (c.replies) {
+                                c.replies = c.replies.filter(r => r.id !== commentId);
+                            }
+                        });
+                    }
                     $store.toast.show('Comment deleted', 'success');
                 }
             } catch(e) {
@@ -245,13 +319,24 @@
                 <div class="w-9 h-9 rounded-full bg-gradient-to-br from-[#3f8caf] to-[#54acc8] flex items-center justify-center text-white text-sm font-semibold shrink-0">
                     {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
                 </div>
-                <div class="flex-1">
+                <div class="flex-1 min-w-0">
+                    <div x-show="replyingTo" class="mb-2 flex items-center justify-between bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
+                        <div class="flex-1 min-w-0 pr-4">
+                            <span class="text-xs text-blue-700">
+                                Replying to <span class="font-semibold" x-text="replyingTo.user.name"></span>
+                            </span>
+                            <p class="text-[10px] text-blue-500 truncate mt-0.5 opacity-80" x-text="replyingTo.body || (replyingTo.attachments && replyingTo.attachments.length > 0 ? (replyingTo.attachments[0].is_image ? '[Image]' : '[Attachment]') : '[Message]')"></p>
+                        </div>
+                        <button @click="replyingTo = null" class="text-blue-400 hover:text-blue-600 shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+                        </button>
+                    </div>
                     <div class="relative">
                         <textarea
                             x-model="newComment"
                             @keydown.ctrl.enter="submitComment()"
                             rows="3"
-                            placeholder="Write a comment… (Ctrl+Enter to submit)"
+                            :placeholder="replyingTo ? 'Write a reply...' : 'Write a comment… (Ctrl+Enter to submit)'"
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent resize-none"
                         ></textarea>
                         
@@ -320,52 +405,154 @@
             </template>
 
             <template x-for="comment in comments" :key="comment.id">
-                <div :id="'comment-' + comment.id" class="flex gap-3 group target:bg-blue-50 target:ring-2 target:ring-blue-100 target:rounded-xl p-2 transition-all duration-500">
-                    <div class="w-9 h-9 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-semibold shrink-0"
-                         x-text="comment.user.initials"></div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center justify-between gap-2 mb-1">
-                            <div class="flex items-center gap-2">
-                                <span class="text-sm font-semibold text-gray-900" x-text="comment.user.name"></span>
-                                <span class="text-xs text-gray-400" x-text="comment.created_at"></span>
-                            </div>
-                            <button
-                                x-show="comment.can_delete"
-                                @click="deleteComment(comment.id)"
-                                class="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-50 text-gray-300 hover:text-red-500">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                                </svg>
-                            </button>
-                        </div>
-                        <p x-show="comment.body" class="text-sm text-gray-700 bg-gray-50 rounded-lg px-3 py-2 break-words" x-text="comment.body"></p>
-                        
-                        <!-- Attachments Display -->
-                        <div x-show="comment.attachments.length > 0" class="mt-2 flex flex-wrap gap-2">
-                            <template x-for="file in comment.attachments" :key="file.id">
-                                <div class="relative group/file">
-                                    <a :href="file.url" target="_blank" class="block">
-                                        <template x-if="file.is_image">
-                                            <img :src="file.url" class="w-24 h-24 object-cover rounded-lg border hover:opacity-90 transition-opacity shadow-sm">
-                                        </template>
-                                        <template x-if="!file.is_image">
-                                            <div class="flex items-center gap-2 px-3 py-2 bg-white border rounded-lg hover:border-[#3f8caf] transition-colors shadow-sm">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
-                                                <span class="text-xs text-gray-600 truncate max-w-[120px]" x-text="file.name"></span>
-                                            </div>
-                                        </template>
-                                    </a>
-                                    <button 
+                <div class="pt-6 first:pt-0 border-b last:border-0 pb-6">
+                    <div :id="'comment-' + comment.id" class="flex gap-3 group target:bg-blue-50 target:ring-2 target:ring-blue-100 target:rounded-xl p-2 transition-all duration-500 w-full min-w-0">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#3f8caf] to-[#54acc8] flex items-center justify-center text-white text-base font-bold shrink-0 shadow-sm"
+                             x-text="comment.user.initials"></div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between gap-2 mb-1.5">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-bold text-gray-900" x-text="comment.user.name"></span>
+                                    <span class="text-[11px] text-gray-400 font-medium" x-text="comment.created_at"></span>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <button
+                                        @click="replyingTo = comment; $nextTick(() => document.querySelector('textarea').focus())"
+                                        class="flex items-center gap-1 px-2 py-1 rounded hover:bg-blue-50 text-gray-400 hover:text-[#3f8caf] transition-colors"
+                                        title="Reply">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/>
+                                        </svg>
+                                        <span class="text-xs font-medium">Reply</span>
+                                    </button>
+                                    <button
                                         x-show="comment.can_delete"
-                                        @click="deleteAttachment(comment, file.id)"
-                                        class="absolute -top-1.5 -right-1.5 bg-white border shadow-md rounded-full p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover/file:opacity-100 transition-opacity">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        @click="deleteComment(comment.id)"
+                                        class="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-50 text-gray-300 hover:text-red-500">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                             <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
                                         </svg>
                                     </button>
                                 </div>
-                            </template>
+                            </div>
+                            <div class="block w-full min-w-0" x-show="comment.body && comment.body.trim().length > 0">
+                                <p class="comment-body text-[15px] text-gray-800 leading-relaxed mb-1" x-text="comment.body"></p>
+                            </div>
+                            
+                            <!-- Attachments Display -->
+                            <div x-show="comment.attachments.length > 0" class="mt-2 flex flex-wrap gap-2">
+                                <template x-for="file in comment.attachments" :key="file.id">
+                                    <div class="relative group/file">
+                                        <a :href="file.url" target="_blank" class="block">
+                                            <template x-if="file.is_image">
+                                                <img :src="file.url" class="w-24 h-24 object-cover rounded-lg border hover:opacity-90 transition-opacity shadow-sm">
+                                            </template>
+                                            <template x-if="!file.is_image">
+                                                <div class="flex items-center gap-2 px-3 py-2 bg-white border rounded-lg hover:border-[#3f8caf] transition-colors shadow-sm">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                                    <span class="text-xs text-gray-600 truncate max-w-[120px]" x-text="file.name"></span>
+                                                </div>
+                                            </template>
+                                        </a>
+                                        <button 
+                                            x-show="comment.can_delete"
+                                            @click="deleteAttachment(comment, file.id)"
+                                            class="absolute -top-1.5 -right-1.5 bg-white border shadow-md rounded-full p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover/file:opacity-100 transition-opacity">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </template>
+                            </div>
                         </div>
+                    </div>
+
+                    <!-- Replies List (Discord Style) -->
+                    <div x-show="comment.replies && comment.replies.length > 0" class="mt-3 space-y-2 ml-4 border-l-2 border-gray-100 pl-4">
+                        <template x-for="reply in comment.replies" :key="reply.id">
+                            <div class="relative group/reply w-full min-w-0">
+                                <div :id="'comment-' + reply.id" class="flex flex-col gap-1 p-2 rounded-xl hover:bg-gray-50/80 transition-colors target:bg-blue-50 w-full min-w-0">
+                                    <!-- Referenced Message Snippet -->
+                                    <template x-if="reply.reply_to">
+                                        <div class="flex items-center gap-2 text-xs text-gray-500 mb-0.5 ml-2 overflow-hidden">
+                                            <div class="w-4 h-4 rounded-full bg-gray-200 flex items-center justify-center text-[10px] shrink-0" x-text="reply.reply_to.user.initials"></div>
+                                            <span class="font-medium text-gray-400 shrink-0" x-text="'@' + reply.reply_to.user.name"></span>
+                                            <span class="truncate opacity-60 min-w-0" x-text="(reply.reply_to.body || '[Attachment]').substring(0, 40) + (reply.reply_to.body && reply.reply_to.body.length > 40 ? '...' : '')"></span>
+                                        </div>
+                                    </template>
+                                    <template x-if="!reply.reply_to">
+                                        <div class="flex items-center gap-2 text-xs text-gray-500 mb-0.5 ml-2 overflow-hidden">
+                                            <div class="w-4 h-4 rounded-full bg-gray-200 flex items-center justify-center text-[10px] shrink-0" x-text="comment.user.initials"></div>
+                                            <span class="font-medium text-gray-400 shrink-0" x-text="'@' + comment.user.name"></span>
+                                            <span class="truncate opacity-60 min-w-0" x-text="(comment.body || '[Attachment]').substring(0, 40) + (comment.body && comment.body.length > 40 ? '...' : '')"></span>
+                                        </div>
+                                    </template>
+
+                                    <div class="flex gap-2.5">
+                                        <div class="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 text-[10px] font-bold shrink-0 border border-gray-200"
+                                             x-text="reply.user.initials"></div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center justify-between gap-2 mb-0.5">
+                                                <div class="flex items-center gap-1.5">
+                                                    <span class="text-[13px] font-bold text-gray-800" x-text="reply.user.name"></span>
+                                                    <span class="text-[10px] text-gray-400 font-medium" x-text="reply.created_at"></span>
+                                                </div>
+                                                <div class="flex items-center gap-1">
+                                                    <button
+                                                        @click="replyingTo = reply; $nextTick(() => document.querySelector('textarea').focus())"
+                                                        class="flex items-center gap-1 px-2 py-1 rounded hover:bg-blue-50 text-gray-400 hover:text-[#3f8caf] transition-colors"
+                                                        title="Reply">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                            <polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/>
+                                                        </svg>
+                                                        <span class="text-xs font-medium">Reply</span>
+                                                    </button>
+                                                    <button
+                                                        x-show="reply.can_delete"
+                                                        @click="deleteComment(reply.id)"
+                                                        class="opacity-0 group-hover/reply:opacity-100 transition-opacity p-1 rounded hover:bg-red-50 text-gray-300 hover:text-red-500">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                            <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="block w-full min-w-0" x-show="reply.body && reply.body.trim().length > 0">
+                                                <p class="comment-body text-[13px] text-gray-700 bg-gray-100/60 rounded-lg px-3 py-2 border border-gray-100/50" x-text="reply.body"></p>
+                                            </div>
+                                            
+                                            <!-- Attachments Display -->
+                                            <div x-show="reply.attachments.length > 0" class="mt-2 flex flex-wrap gap-2">
+                                                <template x-for="file in reply.attachments" :key="file.id">
+                                                    <div class="relative group/file">
+                                                        <a :href="file.url" target="_blank" class="block">
+                                                            <template x-if="file.is_image">
+                                                                <img :src="file.url" class="w-20 h-20 object-cover rounded-lg border hover:opacity-90 transition-opacity shadow-sm">
+                                                            </template>
+                                                            <template x-if="!file.is_image">
+                                                                <div class="flex items-center gap-2 px-3 py-2 bg-white border rounded-lg hover:border-[#3f8caf] transition-colors shadow-sm">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                                                    <span class="text-xs text-gray-600 truncate max-w-[100px]" x-text="file.name"></span>
+                                                                </div>
+                                                            </template>
+                                                        </a>
+                                                        <button 
+                                                            x-show="reply.can_delete"
+                                                            @click="deleteAttachment(reply, file.id)"
+                                                            class="absolute -top-1.5 -right-1.5 bg-white border shadow-md rounded-full p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover/file:opacity-100 transition-opacity">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                                <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                 </div>
             </template>
