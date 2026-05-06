@@ -9,6 +9,13 @@ class TaskController extends Controller
 {
     public function store(Request $request)
     {
+        if (auth()->user()->role === 'Employee') {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+            return back()->with('error', 'Unauthorized.');
+        }
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -55,7 +62,7 @@ class TaskController extends Controller
             'status' => 'required|string|exists:project_columns,name,project_id,' . $task->project_id,
         ]);
         
-        if (!$this->authorizeTaskAction($task)) {
+        if (!$this->authorizeStatusUpdate($task)) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
@@ -69,8 +76,14 @@ class TaskController extends Controller
 
     public function show($id)
     {
-        $task = Task::with(['project', 'assignee', 'creator', 'members'])->findOrFail($id);
-        return view('tasks.show', compact('task'));
+        $task = Task::with(['project', 'assignee', 'creator', 'members', 'comments.user', 'comments.attachments'])->findOrFail($id);
+        $user = auth()->user();
+
+        // Determine if the current user can comment
+        $canComment = in_array($user->role, ['SuperAdmin', 'Admin', 'Team Leader'])
+            || $task->assigned_to === $user->id;
+
+        return view('tasks.show', compact('task', 'canComment'));
     }
 
     public function edit($id)
@@ -166,7 +179,27 @@ class TaskController extends Controller
         if ($user->role === 'SuperAdmin' || $user->role === 'Admin') {
             return true;
         }
+
+        // Employees cannot edit task details
+        if ($user->role === 'Employee') {
+            return false;
+        }
         
+        return $task->created_by === $user->id || $task->assigned_to === $user->id;
+    }
+
+    private function authorizeStatusUpdate(Task $task)
+    {
+        $user = auth()->user();
+        if ($user->role === 'SuperAdmin' || $user->role === 'Admin') {
+            return true;
+        }
+
+        // Employees can only move tasks assigned to them
+        if ($user->role === 'Employee') {
+            return $task->assigned_to === $user->id;
+        }
+
         return $task->created_by === $user->id || $task->assigned_to === $user->id;
     }
 }

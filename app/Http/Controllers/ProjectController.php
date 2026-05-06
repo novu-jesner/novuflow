@@ -239,7 +239,14 @@ public function store(Request $request)
             }
         }
 
-        $tasks = Task::where('project_id', $project->id)->with('assignee')->get();
+        $tasksQuery = Task::where('project_id', $project->id)->with('assignee');
+
+        // Employees only see tasks assigned to them
+        if ($user->role === 'Employee') {
+            $tasksQuery->where('assigned_to', $user->id);
+        }
+
+        $tasks = $tasksQuery->get();
         $projectMembers = $project->members;
         $columns = $project->columns;
 

@@ -10,6 +10,8 @@
                 'message' => $n->data['message'] ?? '',
                 'type' => $n->data['type'] ?? 'info',
                 'project_id' => $n->data['project_id'] ?? null,
+                'task_id' => $n->data['task_id'] ?? null,
+                'comment_id' => $n->data['comment_id'] ?? null,
                 'read' => !is_null($n->read_at),
                 'createdAt' => $n->created_at->toISOString()
             ];
@@ -36,7 +38,9 @@
                 if (n.type === 'project_invite') {
                     window.location.href = `/dashboard/projects/${n.project_id}/invitation`;
                 } else if (n.type === 'task_assigned') {
-                    window.location.href = `/dashboard/board/${n.project_id}`;
+                    window.location.href = `/dashboard/tasks/${n.task_id}`;
+                } else if (n.type === 'task_commented') {
+                    window.location.href = `/dashboard/tasks/${n.task_id}#comment-${n.comment_id}`;
                 }
             }
         }
