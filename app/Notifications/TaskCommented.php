@@ -43,7 +43,8 @@ class TaskCommented extends Notification
         return [
             'type' => 'task_commented',
             'title' => 'New Comment on Task',
-            'message' => $this->comment->user->name . ' commented on: ' . $this->task->title,
+            'message' => ($this->comment->parent_id ? $this->comment->user->name . ' replied to a comment on: ' : $this->comment->user->name . ' commented on: ') . $this->task->title,
+            'comment_body' => $this->comment->body,
             'task_id' => $this->task->id,
             'comment_id' => $this->comment->id,
             'project_id' => $this->task->project_id,
