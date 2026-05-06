@@ -250,6 +250,7 @@
                 Add Column
             </button>
             @endif
+            @if(auth()->user()->role !== 'Employee')
             <button @click="showTaskModal = true" class="bg-gradient-to-r from-[#3f8caf] to-[#54acc8] text-white px-4 py-2 rounded-md hover:from-[#2a6a95] hover:to-[#3f8caf] transition-colors inline-flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline mr-2">
                     <path d="M5 12h14"></path>
@@ -257,6 +258,7 @@
                 </svg>
                 Add Task
             </button>
+            @endif
         </div>
     </div>
 
@@ -402,6 +404,7 @@
     </div>
 
     <!-- Edit Task Modal -->
+    @if(auth()->user()->role !== 'Employee')
     <div x-show="showEditModal" x-cloak class="fixed inset-0 z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="showEditModal = false"></div>
         <div class="flex min-h-full items-center justify-center p-4">
@@ -465,6 +468,7 @@
             </div>
         </div>
     </div>
+    @endif
 
     <!-- Kanban Board -->
     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4 overflow-x-auto pb-4">
@@ -499,13 +503,16 @@
                 @php
                     $canManageTask = auth()->user()->role === 'SuperAdmin' || 
                                      auth()->user()->role === 'Admin' || 
-                                     $task->created_by === auth()->id() || 
-                                     $task->assigned_to === auth()->id();
+                                     auth()->user()->role === 'Team Leader' || 
+                                     ($task->created_by === auth()->id() && auth()->user()->role !== 'Employee');
+                    // Employees can drag (move) their own assigned tasks
+                    $canDragTask = $canManageTask || 
+                                   (auth()->user()->role === 'Employee' && $task->assigned_to === auth()->id());
                 @endphp
                 <div class="relative group">
                     <a href="{{ route('tasks.show', $task->id) }}" id="task-{{ $task->id }}" class="block bg-white rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow task-card {{ $task->status == 'Completed' ? 'opacity-75' : '' }}"
-                        draggable="{{ $canManageTask ? 'true' : 'false' }}"
-                        @dragstart="if ({{ $canManageTask ? 'true' : 'false' }}) { draggedTask = {{ $task->id }} }">
+                        draggable="{{ $canDragTask ? 'true' : 'false' }}"
+                        @dragstart="if ({{ $canDragTask ? 'true' : 'false' }}) { draggedTask = {{ $task->id }} }">
                         <div class="flex items-start justify-between mb-2 gap-2">
                             <h4 class="font-medium text-gray-900 group-hover:text-[#3f8caf] transition-colors {{ $task->status == 'Completed' ? 'line-through' : '' }} flex-1 min-w-0 break-words pr-2">{{ $task->title }}</h4>
                             <div class="flex items-center gap-2 shrink-0">
