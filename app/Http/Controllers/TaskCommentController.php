@@ -150,13 +150,40 @@ class TaskCommentController extends Controller
         }
     }
 
+    public function update(Request $request, $taskId, $commentId)
+    {
+        $comment = TaskComment::where('task_id', $taskId)->findOrFail($commentId);
+        $user = auth()->user();
+
+        // Only the author can edit
+        if ($comment->user_id !== $user->id) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'body' => 'required|string|max:2000',
+        ]);
+
+        $comment->update([
+            'body' => $validated['body'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'comment' => [
+                'id' => $comment->id,
+                'body' => $comment->body,
+            ]
+        ]);
+    }
+
     public function destroy(Request $request, $taskId, $commentId)
     {
         $comment = TaskComment::where('task_id', $taskId)->findOrFail($commentId);
         $user    = auth()->user();
 
-        // Only the comment author, admin, or superadmin can delete
-        if ($comment->user_id !== $user->id && !in_array($user->role, ['SuperAdmin', 'Admin', 'Team Leader'])) {
+        // Only the comment author can delete
+        if ($comment->user_id !== $user->id) {
             if ($request->expectsJson()) {
                 return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
             }
@@ -182,8 +209,8 @@ class TaskCommentController extends Controller
         $attachment = TaskCommentAttachment::with('comment')->findOrFail($attachmentId);
         $user = auth()->user();
 
-        // Only comment author, admin, or team leader can delete
-        if ($attachment->comment->user_id !== $user->id && !in_array($user->role, ['SuperAdmin', 'Admin', 'Team Leader'])) {
+        // Only comment author can delete
+        if ($attachment->comment->user_id !== $user->id) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
