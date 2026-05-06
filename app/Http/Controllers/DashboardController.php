@@ -94,16 +94,25 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
         $tasks = Task::where('assigned_to', $user->id)
-            ->with('project', 'assignee')
+            ->with('project', 'assignee', 'creator')
             ->latest()
             ->get();
 
-        $todoTasks = $tasks->where('status', 'To Do');
-        $inProgressTasks = $tasks->where('status', 'In Progress');
-        $reviewTasks = $tasks->where('status', 'Review');
-        $completedTasks = $tasks->where('status', 'Completed');
+        // Get unique statuses and their logical order from ProjectColumns
+        $projectIds = $tasks->pluck('project_id')->unique();
+        $columnOrders = \App\Models\ProjectColumn::whereIn('project_id', $projectIds)
+            ->get()
+            ->groupBy('name')
+            ->map(fn($cols) => $cols->min('order'));
 
-        return view('employee.tasks', compact('tasks', 'todoTasks', 'inProgressTasks', 'reviewTasks', 'completedTasks'));
+        $statuses = $tasks->pluck('status')->unique()->values()->sortBy(function($status) use ($columnOrders) {
+            // Default to a high number if order not found
+            return $columnOrders->get($status, 999);
+        })->values();
+        
+        $groupedTasks = $tasks->groupBy('status');
+
+        return view('employee.tasks', compact('tasks', 'statuses', 'groupedTasks'));
     }
 
     public function adminUsers()
