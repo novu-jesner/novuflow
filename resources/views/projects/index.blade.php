@@ -22,13 +22,16 @@
             <h1 class="text-3xl font-semibold text-gray-900">Projects</h1>
             <p class="text-gray-600 mt-1">Manage and track all your projects</p>
         </div>
-        <button @click="showModal = true" class="bg-gradient-to-r from-[#3f8caf] to-[#54acc8] text-white px-4 py-2 rounded-md hover:from-[#2a6a95] hover:to-[#3f8caf] transition-colors inline-flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline mr-2">
-                <path d="M5 12h14"></path>
-                <path d="M12 5v14"></path>
-            </svg>
-            New Project
-        </button>
+      @if(auth()->user()->role !== 'Employee')
+    <button @click="showModal = true"
+        class="bg-gradient-to-r from-[#3f8caf] to-[#54acc8] text-white px-4 py-2 rounded-md hover:from-[#2a6a95] hover:to-[#3f8caf] transition-colors inline-flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline mr-2">
+            <path d="M5 12h14"></path>
+            <path d="M12 5v14"></path>
+        </svg>
+        New Project
+    </button>
+@endif
     </div>
 
     <!-- Create Project Modal -->

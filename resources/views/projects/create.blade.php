@@ -12,10 +12,17 @@
     </div>
 
     <div class="bg-white rounded-lg shadow">
-        <div class="p-6 border-b">
-            <h1 class="text-2xl font-semibold">Create New Project</h1>
-            <p class="text-gray-600 mt-1">Fill in the details to create a new project</p>
+       <div class="bg-white rounded-lg shadow">
+    <div class="p-6 border-b">
+        <h1 class="text-2xl font-semibold">Create New Project</h1>
+        <p class="text-gray-600 mt-1">Fill in the details to create a new project</p>
+    </div>
+
+    @if(session('error'))
+        <div class="mx-6 mt-4 p-3 bg-red-100 text-red-700 rounded-md">
+            {{ session('error') }}
         </div>
+    @endif
         <form action="{{ route('projects.store') }}" method="POST" class="p-6 space-y-6">
             @csrf
             <div class="space-y-2">
@@ -62,4 +69,5 @@
         </form>
     </div>
 </div>
+
 @endsection
