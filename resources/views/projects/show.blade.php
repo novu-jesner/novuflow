@@ -1,7 +1,7 @@
 @extends('layouts.dashboard')
 
 @section('dashboard-content')
-<div class="space-y-6" x-data="{ activeTab: 'overview', showSettingsModal: false, async updateProject(e) { await submitForm(e.target, { onSuccess: (data) => { window.location.reload(); } }); }, async addMember(e) { await submitForm(e.target, { onSuccess: (data) => { if(data.redirect) window.location.href = data.redirect; } }); } }">
+<div class="space-y-6" x-data="{ activeTab: 'overview', taskTab: 'all', showSettingsModal: false, async updateProject(e) { await submitForm(e.target, { onSuccess: (data) => { window.location.reload(); } }); }, async addMember(e) { await submitForm(e.target, { onSuccess: (data) => { if(data.redirect) window.location.href = data.redirect; } }); } }">
     <!-- Header -->
     <div class="flex items-center justify-between">
         <div class="flex items-center gap-4">
@@ -74,6 +74,77 @@
             <button @click="activeTab = 'activity'" class="px-4 py-2 text-sm font-medium border-b-2 transition-colors" :class="activeTab === 'activity' ? 'border-[#3f8caf] text-[#3f8caf]' : 'border-transparent text-gray-600 hover:text-gray-900'">Activity</button>
         </div>
 
+        <!-- Activity Tab -->
+        <div x-show="activeTab === 'activity'" class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="p-6 border-b">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="font-semibold text-gray-900">Recent Activity</h2>
+                        <p class="text-xs text-gray-500">Live updates from the project board</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-1 bg-blue-50 text-blue-700 text-[10px] font-bold rounded-full border border-blue-100">{{ count($activities) }} Actions</span>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6">
+                <div class="relative space-y-8 before:content-[''] before:absolute before:left-[15px] before:top-2 before:bottom-2 before:w-[2px] before:bg-gray-100">
+                    @forelse($activities as $activity)
+                    <div class="relative pl-10 group">
+                        <!-- Activity Icon -->
+                        <div class="absolute left-0 top-0 w-8 h-8 rounded-full border-4 border-white flex items-center justify-center text-white text-[10px] font-bold shadow-sm z-10 transition-transform group-hover:scale-110
+                            @if($activity['type'] == 'task_created') bg-green-500
+                            @elseif($activity['type'] == 'task_updated') bg-blue-500
+                            @else bg-purple-500 @endif">
+                            {{ $activity['user'] ? substr($activity['user']->name, 0, 1) : 'S' }}
+                        </div>
+                        
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm text-gray-900">
+                                    <span class="font-bold text-gray-900">{{ $activity['user']->name ?? 'System' }}</span>
+                                    @if($activity['type'] == 'task_created')
+                                        <span class="text-gray-600">created a new task</span>
+                                    @elseif($activity['type'] == 'task_updated')
+                                        <span class="text-gray-600">moved task to</span>
+                                        <span class="px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-bold rounded uppercase tracking-wider">{{ $activity['status'] }}</span>
+                                    @else
+                                        <span class="text-gray-600">posted a comment on</span>
+                                    @endif
+                                    
+                                    <a href="{{ route('kanban.board', $project->id) }}#task-{{ $activity['task_id'] }}" class="text-[#3f8caf] font-semibold hover:underline decoration-2 underline-offset-2 transition-all">
+                                        "{{ $activity['title'] }}"
+                                    </a>
+                                </div>
+                                
+                                @if($activity['type'] == 'comment_added' && isset($activity['body']))
+                                <div class="mt-2 p-3 bg-gray-50/50 rounded-lg border border-gray-100 text-sm text-gray-600 italic leading-relaxed group-hover:bg-gray-50 transition-colors">
+                                    "{{ str($activity['body'])->limit(120) }}"
+                                </div>
+                                @endif
+                            </div>
+                            <div class="shrink-0">
+                                <span class="text-[11px] font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded group-hover:bg-gray-100 transition-colors">
+                                    {{ $activity['date']->diffForHumans() }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    @empty
+                    <div class="text-center py-12">
+                        <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-300">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                            </svg>
+                        </div>
+                        <h3 class="text-gray-900 font-medium">No activity yet</h3>
+                        <p class="text-sm text-gray-500">Actions taken on the project board will appear here.</p>
+                    </div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+
         <!-- Overview Tab -->
         <div x-show="activeTab === 'overview'" class="grid gap-6 lg:grid-cols-2">
             <div class="bg-white rounded-lg shadow">
@@ -129,64 +200,100 @@
                     <h2 class="font-semibold">Quick Stats</h2>
                 </div>
                 <div class="p-6">
-                    @php
-                        $totalTasks = $project->tasks->count();
-                        $completedTasks = $project->tasks->where('status', 'Completed')->count();
-                        $inProgressTasks = $project->tasks->where('status', 'In Progress')->count();
-                        $todoTasks = $project->tasks->where('status', 'To Do')->count();
-                    @endphp
                     <div class="space-y-3">
                         <div class="flex justify-between">
                             <span class="text-sm text-gray-600">Total Tasks</span>
-                            <span class="font-medium">{{ $totalTasks }}</span>
+                            <span class="font-medium">{{ $tasks->count() }}</span>
                         </div>
+                        @foreach($statusCounts as $status => $count)
                         <div class="flex justify-between">
-                            <span class="text-sm text-gray-600">Completed</span>
-                            <span class="font-medium text-green-600">{{ $completedTasks }}</span>
+                            <span class="text-sm text-gray-600">{{ $status }}</span>
+                            <span class="font-medium 
+                                @if($status == 'Completed') text-green-600
+                                @elseif($status == 'In Progress') text-blue-600
+                                @elseif($status == 'Review') text-yellow-600
+                                @else text-gray-600 @endif">{{ $count }}</span>
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-sm text-gray-600">In Progress</span>
-                            <span class="font-medium text-blue-600">{{ $inProgressTasks }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-sm text-gray-600">To Do</span>
-                            <span class="font-medium text-gray-600">{{ $todoTasks }}</span>
-                        </div>
+                        @endforeach
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Tasks Tab -->
-        <div x-show="activeTab === 'tasks'" class="bg-white rounded-lg shadow">
-            <div class="p-6 border-b">
-                <h2 class="font-semibold">All Tasks</h2>
-                <p class="text-sm text-gray-600">Tasks for this project</p>
-            </div>
-            <div class="p-6">
-                <div class="space-y-2">
-                    @forelse($project->tasks as $task)
-                        <div class="flex items-center justify-between p-3 border rounded-md hover:bg-gray-50">
-                            <div class="flex items-center gap-3">
-                                <div class="h-2 w-2 rounded-full
-                                    @if($task->priority == 'High') bg-orange-500
-                                    @elseif($task->priority == 'Medium') bg-yellow-500
-                                    @else bg-green-500 @endif"></div>
-                                <div>
-                                    <div class="font-medium">{{ $task->title }}</div>
-                                    <div class="text-sm text-gray-500">{{ $task->assignee->name ?? 'Unassigned' }}</div>
-                                </div>
-                            </div>
-                            <span class="px-2 py-1 text-xs rounded-full
-                                @if($task->priority == 'High') bg-orange-100 text-orange-700
-                                @elseif($task->priority == 'Medium') bg-yellow-100 text-yellow-700
-                                @else bg-green-100 text-green-700 @endif">
-                                {{ $task->priority }}
-                            </span>
+        <div x-show="activeTab === 'tasks'" class="space-y-4">
+            <div class="bg-white rounded-lg shadow">
+                <div class="p-4 border-b">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h2 class="font-semibold text-gray-900">Project Tasks</h2>
+                            <p class="text-sm text-gray-500">Overview of all tasks in this project</p>
                         </div>
-                    @empty
-                        <div class="text-center text-gray-500 py-4">No tasks yet</div>
-                    @endforelse
+                        <div class="flex gap-1 bg-gray-50 p-1 rounded-lg border border-gray-100 overflow-x-auto scrollbar-hide">
+                            <button @click="taskTab = 'all'" class="px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap" :class="taskTab === 'all' ? 'bg-white text-[#3f8caf] shadow-sm' : 'text-gray-500 hover:text-gray-700'">
+                                All <span class="ml-1 px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px]">{{ $tasks->count() }}</span>
+                            </button>
+                            @foreach($columns as $column)
+                            <button @click="taskTab = '{{ $column->name }}'" class="px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap" :class="taskTab === '{{ $column->name }}' ? 'bg-white text-[#3f8caf] shadow-sm' : 'text-gray-500 hover:text-gray-700'">
+                                {{ $column->name }} <span class="ml-1 px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px]">{{ $statusCounts->get($column->name, 0) }}</span>
+                            </button>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <!-- Tasks List -->
+                    <div class="space-y-3">
+                        @forelse($tasks as $task)
+                        <div x-show="taskTab === 'all' || taskTab === '{{ $task->status }}'" class="group">
+                            <a href="{{ route('kanban.board', $project->id) }}#task-{{ $task->id }}" class="flex items-center justify-between p-4 border border-gray-100 rounded-lg hover:border-[#3f8caf] hover:bg-blue-50/30 transition-all shadow-sm hover:shadow">
+                                <div class="flex items-center gap-4 flex-1 min-w-0">
+                                    <div class="h-10 w-10 rounded-lg bg-gray-50 flex items-center justify-center shrink-0 group-hover:bg-white transition-colors">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400 group-hover:text-[#3f8caf]">
+                                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-center gap-2 mb-0.5">
+                                            <span class="text-xs font-bold uppercase tracking-wider
+                                                @if($task->priority == 'High') text-red-500
+                                                @elseif($task->priority == 'Medium') text-yellow-600
+                                                @else text-green-500 @endif">{{ $task->priority }}</span>
+                                            <span class="text-gray-300">•</span>
+                                            <span class="text-xs font-medium text-gray-500">{{ $task->status }}</span>
+                                        </div>
+                                        <h4 class="font-medium text-gray-900 group-hover:text-[#3f8caf] transition-colors truncate {{ $task->status == 'Completed' ? 'line-through text-gray-400' : '' }}">{{ $task->title }}</h4>
+                                        <div class="flex items-center gap-3 mt-1">
+                                            <div class="flex items-center gap-1.5 text-xs text-gray-500">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                                {{ $task->assignee->name ?? 'Unassigned' }}
+                                            </div>
+                                            @if($task->due_date)
+                                            <div class="flex items-center gap-1.5 text-xs {{ $task->due_date->isPast() && $task->status !== 'Completed' ? 'text-red-500 font-medium' : 'text-gray-500' }}">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect><line x1="16" x2="16" y1="2" y2="6"></line><line x1="8" x2="8" y1="2" y2="6"></line><line x1="3" x2="21" y1="10" y2="10"></line></svg>
+                                                {{ $task->due_date->format('M d') }}
+                                            </div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="ml-4 shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-300 group-hover:text-[#3f8caf] group-hover:translate-x-0.5 transition-all">
+                                        <path d="m9 18 6-6-6-6"></path>
+                                    </svg>
+                                </div>
+                            </a>
+                        </div>
+                        @empty
+                        <div class="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="mx-auto text-gray-300 mb-3">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"></path>
+                            </svg>
+                            <h3 class="text-gray-900 font-medium">No tasks found</h3>
+                            <p class="text-sm text-gray-500">There are no tasks associated with this project yet.</p>
+                        </div>
+                        @endforelse
+                    </div>
                 </div>
             </div>
         </div>
@@ -222,6 +329,9 @@
 
                     <div class="space-y-4">
                     @forelse($project->members as $member)
+                        @if($member->id === $project->created_by)
+                            @continue
+                        @endif
                         @php
                             $completedTasks = $member->assignedTasks->where('project_id', $project->id)->where('status', 'Completed')->count();
                         @endphp
@@ -255,40 +365,6 @@
             </div>
         </div>
 
-        <!-- Activity Tab -->
-        <div x-show="activeTab === 'activity'" class="bg-white rounded-lg shadow">
-            <div class="p-6 border-b">
-                <h2 class="font-semibold">Recent Activity</h2>
-                <p class="text-sm text-gray-600">Latest updates from the team</p>
-            </div>
-            <div class="p-6">
-                <div class="space-y-4">
-                    @forelse($project->tasks->sortByDesc('updated_at')->take(10) as $task)
-                    @php
-                        $statusChanged = $task->updated_at != $task->created_at;
-                        $timeAgo = $task->updated_at->diffForHumans();
-                    @endphp
-                    <div class="flex items-start gap-3">
-                        <div class="w-8 h-8 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-white text-sm">{{ $task->creator ? substr($task->creator->name, 0, 1) : 'S' }}</div>
-                        <div class="flex-1">
-                            <p class="text-sm">
-                                <span class="font-medium">{{ $task->creator->name ?? 'System' }}</span>
-                                @if($statusChanged)
-                                    <span> updated task status to {{ $task->status }} on </span>
-                                @else
-                                    <span> created task </span>
-                                @endif
-                                <span class="text-[#3f8caf]">"{{ $task->title }}"</span>
-                            </p>
-                            <p class="text-xs text-gray-500 mt-1">{{ $timeAgo }}</p>
-                        </div>
-                    </div>
-                    @empty
-                    <div class="text-center py-8 text-gray-500">No recent activity</div>
-                    @endforelse
-                </div>
-            </div>
-        </div>
     </div>
     <!-- Settings Modal -->
     <div x-show="showSettingsModal" style="display: none;" class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
