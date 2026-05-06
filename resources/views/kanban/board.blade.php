@@ -584,6 +584,38 @@
         </div>
         @endforeach
     </div>
+    <style>
+        @keyframes taskGlow {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); border-color: rgba(59, 130, 246, 0.5); }
+            50% { box-shadow: 0 0 20px 10px rgba(59, 130, 246, 0.3); border-color: rgba(59, 130, 246, 1); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); border-color: transparent; }
+        }
+        .highlight-task {
+            animation: taskGlow 2s ease-in-out 3;
+            z-index: 10;
+            position: relative;
+        }
+    </style>
+    <script>
+        function highlightTask() {
+            if (window.location.hash && window.location.hash.startsWith('#task-')) {
+                const taskId = window.location.hash.substring(1);
+                setTimeout(() => {
+                    const element = document.getElementById(taskId);
+                    if (element) {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        element.classList.add('highlight-task', 'ring-4', 'ring-blue-500', 'ring-offset-2');
+                        setTimeout(() => {
+                            element.classList.remove('highlight-task', 'ring-4', 'ring-blue-500', 'ring-offset-2');
+                        }, 6000);
+                    }
+                }, 800);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', highlightTask);
+        window.addEventListener('hashchange', highlightTask);
+    </script>
 </div>
 @endsection
 
