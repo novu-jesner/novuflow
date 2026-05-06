@@ -26,6 +26,8 @@ class TaskCommentController extends Controller
 
         $validated = $request->validate([
             'body' => 'nullable|string|max:2000',
+            'parent_id' => 'nullable|exists:task_comments,id',
+            'reply_to_id' => 'nullable|exists:task_comments,id',
             'attachments.*' => 'nullable|file|max:10240', // 10MB max per file
         ]);
 
@@ -40,6 +42,8 @@ class TaskCommentController extends Controller
             $comment = TaskComment::create([
                 'task_id' => $task->id,
                 'user_id' => $user->id,
+                'parent_id' => $validated['parent_id'] ?? null,
+                'reply_to_id' => $validated['reply_to_id'] ?? null,
                 'body'    => $validated['body'] ?? '',
             ]);
 
@@ -86,7 +90,7 @@ class TaskCommentController extends Controller
                 }
             }
 
-            $comment->load(['user', 'attachments']);
+            $comment->load(['user', 'attachments', 'replies', 'replyTo.user']);
 
             // Notify involved users
             $involvedUserIds = collect([$task->created_by, $task->assigned_to])
@@ -106,6 +110,15 @@ class TaskCommentController extends Controller
                     'success' => true,
                     'comment' => [
                         'id'         => $comment->id,
+                        'parent_id'  => $comment->parent_id,
+                        'reply_to_id' => $comment->reply_to_id,
+                        'reply_to'   => $comment->replyTo ? [
+                            'user' => [
+                                'name' => $comment->replyTo->user->name,
+                                'initials' => strtoupper(substr($comment->replyTo->user->name, 0, 1)),
+                            ],
+                            'body' => $comment->replyTo->body,
+                        ] : null,
                         'body'       => $comment->body,
                         'created_at' => $comment->created_at->diffForHumans(),
                         'user' => [
@@ -118,6 +131,7 @@ class TaskCommentController extends Controller
                             'url' => $a->url,
                             'is_image' => $a->isImage(),
                         ]),
+                        'replies' => [],
                         'can_delete' => true,
                     ],
                 ]);
