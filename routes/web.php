@@ -114,6 +114,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/analytics', [DashboardController::class, 'adminAnalytics'])->name('admin.analytics');
     });
 
+    Route::get('/notifications/{id}', [NotificationController::class, 'show'])->name('notifications.show');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.markAllRead');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');

@@ -220,6 +220,30 @@
                 this.reorderColumns();
             }
             this.draggedColumn = null;
+        },
+        async deleteTask(taskId) {
+            if (!confirm('Are you sure you want to delete this task?')) return;
+            
+            try {
+                const response = await fetch('/dashboard/tasks/' + taskId, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                if (response.ok) {
+                    const card = document.getElementById('task-' + taskId);
+                    if (card) card.remove();
+                    this.updateCounters();
+                    $store.toast.show('Task deleted successfully', 'success');
+                } else {
+                    $store.toast.show('Failed to delete task', 'error');
+                }
+            } catch (error) {
+                $store.toast.show('Network error', 'error');
+            }
         }
     }">
 
@@ -524,9 +548,14 @@
                                     {{ $task->status == 'Completed' ? 'Done' : $task->priority }}
                                 </span>
                                 @if($canManageTask)
-                                <button type="button" @click.prevent.stop="openEditModal({{ $task->toJson() }})" class="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-[#3f8caf] transition-colors" title="Edit Task">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
-                                </button>
+                                <div class="flex items-center gap-1">
+                                    <button type="button" @click.prevent.stop="openEditModal({{ $task->toJson() }})" class="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-[#3f8caf] transition-colors" title="Edit Task">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                                    </button>
+                                    <button type="button" @click.prevent.stop="deleteTask({{ $task->id }})" class="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-red-600 transition-colors" title="Delete Task">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                                    </button>
+                                </div>
                                 @endif
                             </div>
                         </div>

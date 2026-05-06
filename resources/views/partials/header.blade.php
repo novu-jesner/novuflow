@@ -19,63 +19,45 @@
         })->toJson() }}, 
         unreadCount: {{ auth()->user()->unreadNotifications()->count() }},
         init() {
-            if (window.Echo) {
-                window.Echo.private('App.Models.User.{{ auth()->id() }}')
-                    .notification((notification) => {
-                        // Prepend the new notification to the list
-                        this.notifications.unshift({
-                            id: notification.id,
-                            title: notification.title,
-                            message: notification.message,
-                            comment_body: notification.comment_body,
-                            type: notification.type,
-                            project_id: notification.project_id,
-                            task_id: notification.task_id,
-                            comment_id: notification.comment_id,
-                            read: false,
-                            createdAt: new Date().toISOString()
-                        });
-                        
-                        // Keep only the last 10 for the dropdown
-                        if (this.notifications.length > 10) {
-                            this.notifications.pop();
-                        }
-                        
-                        this.unreadCount++;
-                        
-                        // Show a toast
-                        if (window.Alpine && Alpine.store('toast')) {
-                            Alpine.store('toast').show(notification.message, 'info');
-                        }
-                    });
-            }
-        },
-        async markAsRead(id) {
-            const n = this.notifications.find(notif => notif.id === id);
-            if (n) {
-                if (!n.read) {
-                    try {
-                        await fetch(`/notifications/${id}/read`, {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'Accept': 'application/json'
+            const setupEcho = () => {
+                if (window.Echo) {
+                    window.Echo.private('App.Models.User.{{ auth()->id() }}')
+                        .notification((notification) => {
+                            // Prepend the new notification to the list
+                            this.notifications.unshift({
+                                id: notification.id,
+                                title: notification.title,
+                                message: notification.message,
+                                comment_body: notification.comment_body,
+                                type: notification.type,
+                                project_id: notification.project_id,
+                                task_id: notification.task_id,
+                                comment_id: notification.comment_id,
+                                read: false,
+                                createdAt: new Date().toISOString()
+                            });
+                            
+                            // Keep only the last 10 for the dropdown
+                            if (this.notifications.length > 10) {
+                                this.notifications.pop();
+                            }
+                            
+                            this.unreadCount++;
+                            
+                            // Show a toast
+                            if (window.Alpine && Alpine.store('toast')) {
+                                Alpine.store('toast').show(notification.message, 'info');
                             }
                         });
-                        n.read = true;
-                        this.unreadCount = Math.max(0, this.unreadCount - 1);
-                    } catch (e) { console.error(e); }
+                } else {
+                    // If Echo isn't ready yet, try again in 500ms
+                    setTimeout(setupEcho, 500);
                 }
-                
-                // Navigate based on type
-                if (n.type === 'project_invite') {
-                    window.location.href = `/dashboard/projects/${n.project_id}/invitation`;
-                } else if (n.type === 'task_assigned') {
-                    window.location.href = `/dashboard/tasks/${n.task_id}`;
-                } else if (n.type === 'task_commented') {
-                    window.location.href = `/dashboard/tasks/${n.task_id}#comment-${n.comment_id}`;
-                }
-            }
+            };
+            setupEcho();
+        },
+        async markAsRead(id) {
+            window.location.href = `/notifications/${id}`;
         },
         async markAllRead() {
             try {
