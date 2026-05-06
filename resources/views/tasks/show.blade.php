@@ -251,15 +251,30 @@
                     } else {
                         this.comments.unshift(data.comment);
                     }
+                    const isReply = !!this.replyingTo;
                     this.newComment = '';
                     this.replyingTo = null;
                     this.selectedFiles = [];
-                    $store.toast.show('Comment posted', 'success');
+                    $store.toast.show(isReply ? 'Reply posted' : 'Comment posted', 'success');
+                    
+                    // Scroll to the new comment
+                    this.$nextTick(() => {
+                        const element = document.getElementById('comment-' + data.comment.id);
+                        if (element) {
+                            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            element.classList.add('ring-2', 'ring-blue-400', 'rounded-xl');
+                            setTimeout(() => {
+                                element.classList.remove('ring-2', 'ring-blue-400');
+                            }, 2000);
+                        }
+                    });
                 } else {
                     $store.toast.show(data.message || 'Failed to post', 'error');
                 }
             } catch(e) {
                 $store.toast.show('Network error', 'error');
+            } finally {
+                this.isSubmitting = false;
             }
         },
         startEdit(comment) {
@@ -425,8 +440,8 @@
                             :disabled="(!newComment.trim() && selectedFiles.length === 0) || isSubmitting"
                             :class="{ 'opacity-50 cursor-not-allowed': (!newComment.trim() && selectedFiles.length === 0) || isSubmitting }"
                             class="px-4 py-2 bg-gradient-to-r from-[#3f8caf] to-[#54acc8] text-white text-sm font-medium rounded-md hover:from-[#2a6a95] hover:to-[#3f8caf] transition-colors">
-                            <span x-show="!isSubmitting">Post Comment</span>
-                            <span x-show="isSubmitting">Posting…</span>
+                            <span x-show="!isSubmitting" x-text="replyingTo ? 'Post Reply' : 'Post Comment'"></span>
+                            <span x-show="isSubmitting" x-text="replyingTo ? 'Replying…' : 'Posting…'"></span>
                         </button>
                     </div>
                 </div>

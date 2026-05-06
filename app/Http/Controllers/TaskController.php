@@ -189,11 +189,14 @@ class TaskController extends Controller
             return true;
         }
 
-        // Employees cannot edit task details
+        if ($user->role === 'Team Leader') {
+            return true;
+        }
+
         if ($user->role === 'Employee') {
             return false;
         }
-        
+
         return $task->created_by === $user->id || $task->assigned_to === $user->id;
     }
 
