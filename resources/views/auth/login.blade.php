@@ -59,10 +59,7 @@
         <div class="mt-6 p-3 bg-blue-50 rounded-lg">
             <p class="text-xs text-gray-600 font-medium">Demo Accounts (password: password):</p>
             <p class="text-xs text-gray-500 mt-1">
-                admin@example.com - SuperAdmin<br>
-                leader@example.com - Team Leader<br>
-                employee1@example.com - Employee<br>
-                employee2@example.com - Employee
+                admin@example.com - SuperAdmin
             </p>
         </div>
     </div>

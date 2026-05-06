@@ -198,11 +198,11 @@ public function store(Request $request)
         }
 
         $tasks = $project->tasks;
+        $columns = $project->columns()->orderBy('order')->get();
         
-        $todoTasks = $tasks->where('status', 'To Do');
-        $inProgressTasks = $tasks->where('status', 'In Progress');
-        $reviewTasks = $tasks->where('status', 'Review');
-        $completedTasks = $tasks->where('status', 'Completed');
+        $statusCounts = $columns->mapWithKeys(function($column) use ($tasks) {
+            return [$column->name => $tasks->where('status', $column->name)->count()];
+        });
 
         $user = auth()->user();
         $teamMembers = collect();
@@ -217,8 +217,48 @@ public function store(Request $request)
         }
 
         $currentMemberIds = $project->members->pluck('id')->toArray();
+        
+        // Fetch activities
+        $taskActivities = \App\Models\Task::where('project_id', $project->id)
+            ->with(['creator', 'updater'])
+            ->latest('updated_at')
+            ->take(10)
+            ->get()
+            ->map(function($task) {
+                $isNew = $task->created_at->eq($task->updated_at);
+                return [
+                    'type' => $isNew ? 'task_created' : 'task_updated',
+                    'user' => $isNew ? $task->creator : ($task->updater ?? $task->creator),
+                    'title' => $task->title ?? 'Untitled Task',
+                    'status' => $task->status,
+                    'date' => $task->updated_at,
+                    'task_id' => $task->id
+                ];
+            });
 
-        return view('projects.show', compact('project', 'tasks', 'todoTasks', 'inProgressTasks', 'reviewTasks', 'completedTasks', 'teamMembers', 'currentMemberIds'));
+        $commentActivities = \App\Models\TaskComment::whereHas('task', function($q) use ($project) {
+                $q->where('project_id', $project->id);
+            })
+            ->with(['user', 'task'])
+            ->latest()
+            ->take(10)
+            ->get()
+            ->map(function($comment) {
+                return [
+                    'type' => 'comment_added',
+                    'user' => $comment->user,
+                    'title' => $comment->task->title ?? 'Deleted Task',
+                    'body' => $comment->body,
+                    'date' => $comment->created_at,
+                    'task_id' => $comment->task_id
+                ];
+            });
+
+        $activities = $taskActivities->concat($commentActivities)
+            ->sortByDesc('date')
+            ->take(15);
+
+        return view('projects.show', compact('project', 'tasks', 'columns', 'statusCounts', 'teamMembers', 'currentMemberIds', 'activities'));
     }
 
     public function board($boardId)
