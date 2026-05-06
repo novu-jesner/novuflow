@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\TaskController;
+use App\Http\Controllers\TaskCommentController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -75,6 +76,11 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/dashboard/tasks/{id}', [TaskController::class, 'update'])->name('tasks.update');
     Route::delete('/dashboard/tasks/{id}', [TaskController::class, 'destroy'])->name('tasks.destroy');
     Route::post('/dashboard/tasks/{id}/status', [TaskController::class, 'updateStatus'])->name('tasks.updateStatus');
+
+    // Task Comments
+    Route::post('/dashboard/tasks/{id}/comments', [TaskCommentController::class, 'store'])->name('tasks.comments.store');
+    Route::delete('/dashboard/tasks/{taskId}/comments/{commentId}', [TaskCommentController::class, 'destroy'])->name('tasks.comments.destroy');
+    Route::delete('/dashboard/tasks/comments/attachments/{attachmentId}', [TaskCommentController::class, 'deleteAttachment'])->name('tasks.comments.attachments.destroy');
 
     // Team
     Route::get('/dashboard/team/{id?}', [TeamController::class, 'index'])->name('team.index');

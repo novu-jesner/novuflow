@@ -116,5 +116,260 @@
             </div>
         </div>
     </div>
+
+    <!-- Comments Section -->
+    <div class="mt-6 bg-white rounded-lg shadow" x-data="{
+        comments: {{ $task->comments->map(fn($c) => [
+            'id'         => $c->id,
+            'body'       => $c->body,
+            'created_at' => $c->created_at->diffForHumans(),
+            'user'       => ['name' => $c->user->name, 'initials' => strtoupper(substr($c->user->name, 0, 1))],
+            'attachments' => $c->attachments->map(fn($a) => [
+                'id' => $a->id,
+                'name' => $a->file_name,
+                'url' => $a->url,
+                'is_image' => $a->isImage(),
+            ]),
+            'can_delete' => auth()->id() === $c->user_id || in_array(auth()->user()->role, ['SuperAdmin','Admin','Team Leader']),
+        ])->values()->toJson() }},
+        newComment: '',
+        selectedFiles: [],
+        isSubmitting: false,
+        handleFileSelect(e) {
+            const files = Array.from(e.target.files);
+            files.forEach(file => {
+                if (file.size > 10 * 1024 * 1024) {
+                    $store.toast.show('File ' + file.name + ' is too large (max 10MB)', 'error');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    this.selectedFiles.push({
+                        file: file,
+                        name: file.name,
+                        preview: file.type.startsWith('image/') ? event.target.result : null,
+                        isImage: file.type.startsWith('image/')
+                    });
+                };
+                reader.readAsDataURL(file);
+            });
+            e.target.value = '';
+        },
+        removeFile(index) {
+            this.selectedFiles.splice(index, 1);
+        },
+        async submitComment() {
+            if ((!this.newComment.trim() && this.selectedFiles.length === 0) || this.isSubmitting) return;
+            this.isSubmitting = true;
+            
+            const formData = new FormData();
+            formData.append('body', this.newComment);
+            this.selectedFiles.forEach(f => {
+                formData.append('attachments[]', f.file);
+            });
+
+            try {
+                const res = await fetch('{{ route('tasks.comments.store', $task->id) }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                        'Accept': 'application/json',
+                    },
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.success) {
+                    this.comments.unshift(data.comment);
+                    this.newComment = '';
+                    this.selectedFiles = [];
+                    $store.toast.show('Comment posted', 'success');
+                } else {
+                    $store.toast.show(data.message || 'Failed to post', 'error');
+                }
+            } catch(e) {
+                $store.toast.show('Network error', 'error');
+            }
+            this.isSubmitting = false;
+        },
+        async deleteComment(commentId) {
+            if (!confirm('Delete this comment?')) return;
+            try {
+                const res = await fetch('/dashboard/tasks/{{ $task->id }}/comments/' + commentId, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                        'Accept': 'application/json',
+                    }
+                });
+                if (res.ok) {
+                    this.comments = this.comments.filter(c => c.id !== commentId);
+                    $store.toast.show('Comment deleted', 'success');
+                }
+            } catch(e) {
+                $store.toast.show('Network error', 'error');
+            }
+        },
+        async deleteAttachment(comment, attachmentId) {
+            if (!confirm('Delete this attachment?')) return;
+            try {
+                const res = await fetch('/dashboard/tasks/comments/attachments/' + attachmentId, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                        'Accept': 'application/json',
+                    }
+                });
+                if (res.ok) {
+                    comment.attachments = comment.attachments.filter(a => a.id !== attachmentId);
+                    $store.toast.show('Attachment deleted', 'success');
+                }
+            } catch(e) {
+                $store.toast.show('Network error', 'error');
+            }
+        }
+    }">
+        <div class="p-6 border-b">
+            <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                Comments
+                <span class="text-sm font-normal text-gray-400" x-text="'(' + comments.length + ')'"></span>
+            </h3>
+        </div>
+
+        <div class="p-6 space-y-4">
+            <!-- Comment Form -->
+            @if($canComment)
+            <div class="flex gap-3">
+                <div class="w-9 h-9 rounded-full bg-gradient-to-br from-[#3f8caf] to-[#54acc8] flex items-center justify-center text-white text-sm font-semibold shrink-0">
+                    {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                </div>
+                <div class="flex-1">
+                    <div class="relative">
+                        <textarea
+                            x-model="newComment"
+                            @keydown.ctrl.enter="submitComment()"
+                            rows="3"
+                            placeholder="Write a comment… (Ctrl+Enter to submit)"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent resize-none"
+                        ></textarea>
+                        
+                        <!-- Selected Files Preview -->
+                        <div x-show="selectedFiles.length > 0" class="mt-2 flex flex-wrap gap-2">
+                            <template x-for="(file, index) in selectedFiles" :key="index">
+                                <div class="relative group">
+                                    <template x-if="file.isImage">
+                                        <img :src="file.preview" class="w-16 h-16 object-cover rounded-md border shadow-sm">
+                                    </template>
+                                    <template x-if="!file.isImage">
+                                        <div class="w-16 h-16 bg-gray-50 border rounded-md flex flex-col items-center justify-center p-1 text-center">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                            <span class="text-[10px] text-gray-500 truncate w-full px-1" x-text="file.name"></span>
+                                        </div>
+                                    </template>
+                                    <button @click="removeFile(index)" class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors z-10">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between mt-2">
+                        <div class="flex items-center gap-2">
+                            <input type="file" x-ref="fileInput" @change="handleFileSelect" multiple class="hidden" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt">
+                            <button @click="$refs.fileInput.click()" class="p-2 text-gray-500 hover:text-[#3f8caf] hover:bg-gray-100 rounded-md transition-colors" title="Attach files">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.51a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                                </svg>
+                            </button>
+                            <button @click="$refs.fileInput.click()" class="p-2 text-gray-500 hover:text-[#3f8caf] hover:bg-gray-100 rounded-md transition-colors" title="Attach photos">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <button
+                            @click="submitComment()"
+                            :disabled="(!newComment.trim() && selectedFiles.length === 0) || isSubmitting"
+                            :class="{ 'opacity-50 cursor-not-allowed': (!newComment.trim() && selectedFiles.length === 0) || isSubmitting }"
+                            class="px-4 py-2 bg-gradient-to-r from-[#3f8caf] to-[#54acc8] text-white text-sm font-medium rounded-md hover:from-[#2a6a95] hover:to-[#3f8caf] transition-colors">
+                            <span x-show="!isSubmitting">Post Comment</span>
+                            <span x-show="isSubmitting">Posting…</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            @else
+            <div class="text-sm text-gray-500 bg-gray-50 rounded-lg px-4 py-3 border border-gray-200">
+                Only the task assignee and team leaders can comment on this task.
+            </div>
+            @endif
+
+            <!-- Divider -->
+            <template x-if="comments.length > 0">
+                <hr class="border-gray-100">
+            </template>
+
+            <!-- Comments List -->
+            <template x-if="comments.length === 0">
+                <div class="text-center py-8 text-gray-400 text-sm">
+                    No comments yet.
+                </div>
+            </template>
+
+            <template x-for="comment in comments" :key="comment.id">
+                <div :id="'comment-' + comment.id" class="flex gap-3 group target:bg-blue-50 target:ring-2 target:ring-blue-100 target:rounded-xl p-2 transition-all duration-500">
+                    <div class="w-9 h-9 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-semibold shrink-0"
+                         x-text="comment.user.initials"></div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between gap-2 mb-1">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm font-semibold text-gray-900" x-text="comment.user.name"></span>
+                                <span class="text-xs text-gray-400" x-text="comment.created_at"></span>
+                            </div>
+                            <button
+                                x-show="comment.can_delete"
+                                @click="deleteComment(comment.id)"
+                                class="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-50 text-gray-300 hover:text-red-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <p x-show="comment.body" class="text-sm text-gray-700 bg-gray-50 rounded-lg px-3 py-2 break-words" x-text="comment.body"></p>
+                        
+                        <!-- Attachments Display -->
+                        <div x-show="comment.attachments.length > 0" class="mt-2 flex flex-wrap gap-2">
+                            <template x-for="file in comment.attachments" :key="file.id">
+                                <div class="relative group/file">
+                                    <a :href="file.url" target="_blank" class="block">
+                                        <template x-if="file.is_image">
+                                            <img :src="file.url" class="w-24 h-24 object-cover rounded-lg border hover:opacity-90 transition-opacity shadow-sm">
+                                        </template>
+                                        <template x-if="!file.is_image">
+                                            <div class="flex items-center gap-2 px-3 py-2 bg-white border rounded-lg hover:border-[#3f8caf] transition-colors shadow-sm">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                                <span class="text-xs text-gray-600 truncate max-w-[120px]" x-text="file.name"></span>
+                                            </div>
+                                        </template>
+                                    </a>
+                                    <button 
+                                        x-show="comment.can_delete"
+                                        @click="deleteAttachment(comment, file.id)"
+                                        class="absolute -top-1.5 -right-1.5 bg-white border shadow-md rounded-full p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover/file:opacity-100 transition-opacity">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
 </div>
 @endsection
