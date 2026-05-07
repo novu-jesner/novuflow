@@ -3,7 +3,7 @@
 @section('title', 'Notifications - NovuFlow')
 
 @section('content')
-<div class="flex h-screen bg-gray-50">
+<div class="flex h-screen bg-background text-foreground">
     @include('partials.sidebar')
 
     <div class="flex-1 flex flex-col overflow-hidden">
@@ -13,14 +13,14 @@
             <div class="max-w-4xl mx-auto">
                 <div class="flex items-center justify-between mb-8">
                     <div>
-                        <h1 class="text-2xl font-bold text-gray-900">Notifications</h1>
-                        <p class="text-gray-500 text-sm mt-1">Manage your alerts and stay updated with your team's progress.</p>
+                        <h1 class="text-2xl font-bold text-foreground">Notifications</h1>
+                        <p class="text-muted-foreground text-sm mt-1">Manage your alerts and stay updated with your team's progress.</p>
                     </div>
                     
                     @if(auth()->user()->unreadNotifications->count() > 0)
                         <form action="{{ route('notifications.markAllRead') }}" method="POST">
                             @csrf
-                            <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all shadow-sm">
+                            <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-lg text-sm font-medium text-foreground hover:bg-muted/20 transition-all shadow-sm">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>
                                 Mark all as read
                             </button>
@@ -28,7 +28,7 @@
                     @endif
                 </div>
 
-                <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
                     @forelse($notifications as $n)
                         @php
                             $data = $n->data;
@@ -36,10 +36,10 @@
                             $type = $data['type'] ?? 'info';
                             
                             $iconColor = match($type) {
-                                'task_commented' => 'bg-blue-100 text-blue-600',
-                                'task_assigned' => 'bg-green-100 text-green-600',
-                                'project_invite' => 'bg-purple-100 text-purple-600',
-                                default => 'bg-gray-100 text-gray-600',
+                                'task_commented' => 'bg-blue-500/15 text-blue-700 dark:text-blue-300',
+                                'task_assigned' => 'bg-green-500/15 text-green-700 dark:text-green-300',
+                                'project_invite' => 'bg-purple-500/15 text-purple-700 dark:text-purple-300',
+                                default => 'bg-muted/40 text-muted-foreground',
                             };
 
                             $icon = match($type) {
@@ -57,7 +57,7 @@
                             };
                         @endphp
 
-                        <div class="group relative flex gap-4 p-6 border-b last:border-0 hover:bg-gray-50 transition-colors {{ !$isRead ? 'bg-blue-50/30' : '' }}">
+                        <div class="group relative flex gap-4 p-6 border-b border-border last:border-0 hover:bg-muted/20 transition-colors {{ !$isRead ? 'bg-primary/5' : '' }}">
                             <div class="flex-shrink-0">
                                 <div class="w-12 h-12 rounded-full flex items-center justify-center {{ $iconColor }}">
                                     {!! $icon !!}
@@ -66,21 +66,21 @@
                             
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-start justify-between gap-2">
-                                    <h3 class="font-semibold text-gray-900 {{ !$isRead ? 'pr-6' : '' }}">
+                                    <h3 class="font-semibold text-foreground {{ !$isRead ? 'pr-6' : '' }}">
                                         {{ $data['title'] ?? 'Notification' }}
                                     </h3>
-                                    <span class="text-xs text-gray-400 whitespace-nowrap">{{ $n->created_at->diffForHumans() }}</span>
+                                    <span class="text-xs text-muted-foreground whitespace-nowrap">{{ $n->created_at->diffForHumans() }}</span>
                                 </div>
-                                <p class="text-gray-600 text-sm mt-1 leading-relaxed">{{ $data['message'] ?? '' }}</p>
+                                <p class="text-muted-foreground text-sm mt-1 leading-relaxed">{{ $data['message'] ?? '' }}</p>
                                 
                                 @if(isset($data['comment_body']))
-                                    <div class="mt-3 p-3 bg-white/80 border border-gray-100 rounded-lg text-sm text-gray-500 italic">
+                                    <div class="mt-3 p-3 bg-muted/20 border border-border rounded-lg text-sm text-muted-foreground italic">
                                         "{{ Str::limit($data['comment_body'], 150) }}"
                                     </div>
                                 @endif
 
                                 <div class="mt-4 flex items-center gap-4">
-                                    <a href="{{ route('notifications.show', $n->id) }}" onclick="event.stopPropagation();" class="text-sm font-semibold text-[#3f8caf] hover:text-[#2a6a95] flex items-center gap-1">
+                                    <a href="{{ route('notifications.show', $n->id) }}" onclick="event.stopPropagation();" class="text-sm font-semibold text-primary hover:opacity-90 flex items-center gap-1 transition-opacity">
                                         View Details
                                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
                                     </a>
@@ -88,7 +88,7 @@
                                     @if(!$isRead)
                                         <form action="{{ route('notifications.read', $n->id) }}" method="POST">
                                             @csrf
-                                            <button type="submit" class="text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors">
+                                            <button type="submit" class="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
                                                 Mark as read
                                             </button>
                                         </form>
@@ -97,16 +97,16 @@
                             </div>
 
                             @if(!$isRead)
-                                <div class="absolute right-6 top-6 w-2 h-2 rounded-full bg-[#3f8caf]"></div>
+                                <div class="absolute right-6 top-6 w-2 h-2 rounded-full bg-primary"></div>
                             @endif
                         </div>
                     @empty
                         <div class="p-12 text-center">
-                            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
+                            <div class="w-16 h-16 bg-muted/30 border border-border rounded-full flex items-center justify-center mx-auto mb-4 text-muted-foreground">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
                             </div>
-                            <h3 class="text-lg font-medium text-gray-900">No notifications yet</h3>
-                            <p class="text-gray-500 mt-1">When you get updates, they'll appear here.</p>
+                            <h3 class="text-lg font-medium text-foreground">No notifications yet</h3>
+                            <p class="text-muted-foreground mt-1">When you get updates, they'll appear here.</p>
                         </div>
                     @endforelse
                 </div>

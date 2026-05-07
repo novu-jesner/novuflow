@@ -71,7 +71,7 @@
         });
     </script>
 </head>
-<body class="min-h-screen">
+<body class="min-h-screen bg-background text-foreground">
     <!-- Toast Notifications -->
     <div x-data class="fixed top-4 right-4 z-50 space-y-2 pointer-events-none" x-show="$store.toast.items.length > 0" style="display:none;">
         <template x-for="t in $store.toast.items" :key="t.id">
@@ -82,7 +82,7 @@
                  x-transition:leave-start="opacity-100"
                  x-transition:leave-end="opacity-0 translate-x-8"
                  class="pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg text-white text-sm w-72 max-w-md"
-                 :class="{ 'bg-green-600 bg-opacity-90': t.type==='success', 'bg-red-600 bg-opacity-90': t.type==='error', 'bg-blue-600 bg-opacity-90': t.type==='info' }">
+                 :class="{ 'bg-green-600/90': t.type==='success', 'bg-red-600/90': t.type==='error', 'bg-blue-600/90': t.type==='info' }">
                 <template x-if="t.type==='success'">
                     <svg class="shrink-0" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                 </template>

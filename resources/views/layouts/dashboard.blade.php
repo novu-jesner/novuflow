@@ -3,7 +3,7 @@
 @section('title', 'Dashboard - NovuFlow')
 
 @section('content')
-<div class="min-h-screen bg-gray-50">
+<div class="min-h-screen bg-background">
     @include('partials.sidebar')
     <div class="lg:pl-64">
         @include('partials.header')
