@@ -2,23 +2,125 @@
 
 [x-cloak] { display: none !important; }
 
+/* Tailwind v4 class-based dark mode (instead of prefers-color-scheme). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
 @source '../**/*.js';
 
+/*
+  Semantic theme tokens.
+  We map Tailwind color utilities (e.g. `bg-background`, `text-foreground`, `border-border`)
+  to CSS variables, then override those variables under `.dark`.
+*/
+:root {
+    color-scheme: light;
+
+    /* Surfaces */
+    --nv-background: #f8fafc;        /* slate-50-ish */
+    --nv-surface: #ffffff;
+    --nv-card: #ffffff;
+    --nv-popover: #ffffff;
+
+    /* Text */
+    --nv-foreground: #0f172a;        /* slate-900 */
+    --nv-muted-foreground: #64748b;  /* slate-500 */
+
+    /* UI chrome */
+    --nv-border: #e5e7eb;            /* gray-200 */
+    --nv-input: #e5e7eb;             /* gray-200 */
+    --nv-ring: #54acc8;              /* brand secondary */
+
+    /* Brand (light) */
+    --nv-primary: #3f8caf;
+    --nv-primary-foreground: #ffffff;
+    --nv-secondary: #54acc8;
+    --nv-secondary-foreground: #ffffff;
+    --nv-accent: #aecfdd;
+    --nv-accent-foreground: #0f3b57;
+    --nv-muted: #ececf0;
+    --nv-muted-foreground-token: #717182;
+    --nv-destructive: #d4183d;
+    --nv-destructive-foreground: #ffffff;
+
+    /* Shadows */
+    --nv-shadow-color: 15 23 42; /* slate-900 */
+}
+
+.dark {
+    color-scheme: dark;
+
+    /* Surfaces */
+    --nv-background: #0b1220;        /* deep slate */
+    --nv-surface: #0f172a;           /* slate-900 */
+    --nv-card: #111c33;
+    --nv-popover: #0f1b32;
+
+    /* Text */
+    --nv-foreground: #e5e7eb;        /* gray-200 */
+    --nv-muted-foreground: #94a3b8;  /* slate-400 */
+
+    /* UI chrome */
+    --nv-border: #263246;
+    --nv-input: #2b3a52;
+    --nv-ring: #54acc8;
+
+    /* Brand (dark tuned for contrast) */
+    --nv-primary: #6cb7d6;
+    --nv-primary-foreground: #08121a;
+    --nv-secondary: #7ad0e8;
+    --nv-secondary-foreground: #051116;
+    --nv-accent: #27485a;
+    --nv-accent-foreground: #d6eef7;
+    --nv-muted: #1b2436;
+    --nv-muted-foreground-token: #a6b1c2;
+    --nv-destructive: #ff4d6d;
+    --nv-destructive-foreground: #1a0207;
+
+    /* Shadows */
+    --nv-shadow-color: 0 0 0;
+}
+
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
-    
-    --color-primary: #3f8caf;
-    --color-primary-foreground: #ffffff;
-    --color-secondary: #54acc8;
-    --color-secondary-foreground: #ffffff;
-    --color-accent: #aecfdd;
-    --color-accent-foreground: #2a6a95;
-    --color-muted: #ececf0;
-    --color-muted-foreground: #717182;
-    --color-destructive: #d4183d;
-    --color-destructive-foreground: #ffffff;
+
+    /* Semantic palette */
+    --color-background: var(--nv-background);
+    --color-surface: var(--nv-surface);
+    --color-card: var(--nv-card);
+    --color-popover: var(--nv-popover);
+    --color-foreground: var(--nv-foreground);
+    --color-muted-foreground: var(--nv-muted-foreground);
+    --color-border: var(--nv-border);
+    --color-input: var(--nv-input);
+    --color-ring: var(--nv-ring);
+
+    /* Brand palette (semantic + compatibility with existing usage) */
+    --color-primary: var(--nv-primary);
+    --color-primary-foreground: var(--nv-primary-foreground);
+    --color-secondary: var(--nv-secondary);
+    --color-secondary-foreground: var(--nv-secondary-foreground);
+    --color-accent: var(--nv-accent);
+    --color-accent-foreground: var(--nv-accent-foreground);
+    --color-muted: var(--nv-muted);
+    --color-muted-foreground-token: var(--nv-muted-foreground-token);
+    --color-destructive: var(--nv-destructive);
+    --color-destructive-foreground: var(--nv-destructive-foreground);
+}
+
+/* Smooth theme transitions (activated only while toggling). */
+.theme-transition,
+.theme-transition * {
+    transition-property: background-color, color, border-color, outline-color, text-decoration-color, fill, stroke, box-shadow;
+    transition-duration: 180ms;
+    transition-timing-function: var(--ease-out);
+}
+
+/* Default app background/text if pages don't set them explicitly yet. */
+body {
+    background-color: var(--nv-background);
+    color: var(--nv-foreground);
 }
