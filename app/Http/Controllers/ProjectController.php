@@ -11,44 +11,63 @@ use App\Models\User;
 
 class ProjectController extends Controller
 {
-    public function index()
-    {
-        $user = auth()->user();
-        $query = Project::with('team', 'creator', 'members');
 
-        if ($user->role === 'Employee') {
-            // Employees only see projects they are accepted members of
-            $query->whereHas('members', function($q) use ($user) {
-                $q->where('users.id', $user->id)
-                  ->where('project_user.status', 'accepted');
-            });
-        } elseif ($user->role === 'Team Leader') {
-            // Team Leaders see projects they lead OR are members of
-            $query->where(function($q) use ($user) {
-                $teamIds = \App\Models\Team::where('leader_id', $user->id)->pluck('id');
-                $q->whereIn('team_id', $teamIds)
-                  ->orWhereHas('members', function($q) use ($user) {
-                      $q->where('users.id', $user->id)
-                        ->where('project_user.status', 'accepted');
-                  });
-            });
-        }
-        // SuperAdmin and Admin see all projects (no filtering)
+public function index(Request $request)
+{
+    $user = auth()->user();
 
-        $projects = $query->latest()->get();
-        
-        $userTeam = null;
-        $teamMembers = collect();
-        
-        if ($user->role === 'Team Leader') {
-            $userTeam = \App\Models\Team::where('leader_id', $user->id)->first();
-            if ($userTeam) {
-                $teamMembers = $userTeam->members;
-            }
-        }
+    // 1. Base query (ALWAYS include relations)
+    $query = Project::with('team', 'creator', 'members');
 
-        return view('projects.index', compact('projects', 'userTeam', 'teamMembers'));
+    // 2. ROLE FILTERING (DO NOT REMOVE THIS)
+    if ($user->role === 'Employee') {
+
+        $query->whereHas('members', function ($q) use ($user) {
+            $q->where('users.id', $user->id)
+              ->where('project_user.status', 'accepted');
+        });
+
+    } elseif ($user->role === 'Team Leader') {
+
+        $teamIds = \App\Models\Team::where('leader_id', $user->id)->pluck('id');
+
+        $query->where(function ($q) use ($user, $teamIds) {
+
+            $q->whereIn('team_id', $teamIds)
+              ->orWhereHas('members', function ($q2) use ($user) {
+                  $q2->where('users.id', $user->id)
+                     ->where('project_user.status', 'accepted');
+              });
+
+        });
     }
+
+    // 3. FILTERING (SEARCH + STATUS)
+    if ($request->status && $request->status !== 'all') {
+        $query->where('status', $request->status);
+    }
+
+    if ($request->search) {
+        $query->where('name', 'like', '%' . $request->search . '%');
+    }
+
+    // 4. FINAL RESULT
+    $projects = $query->latest()->get();
+
+    // 5. TEAM DATA (unchanged)
+    $userTeam = null;
+    $teamMembers = collect();
+
+    if ($user->role === 'Team Leader') {
+        $userTeam = \App\Models\Team::where('leader_id', $user->id)->first();
+
+        if ($userTeam) {
+            $teamMembers = $userTeam->members;
+        }
+    }
+
+    return view('projects.index', compact('projects', 'userTeam', 'teamMembers'));
+}
 
 
 public function create()
@@ -626,4 +645,44 @@ public function store(Request $request)
 
         return back()->with('success', 'Project status updated successfully!');
     }
+
+    public function filter(Request $request)
+{
+    $user = auth()->user();
+
+    $query = Project::with('team', 'creator', 'members');
+
+    // ROLE FILTER (same logic as index)
+    if ($user->role === 'Employee') {
+        $query->whereHas('members', function ($q) use ($user) {
+            $q->where('users.id', $user->id)
+              ->where('project_user.status', 'accepted');
+        });
+    }
+
+    if ($user->role === 'Team Leader') {
+        $teamIds = \App\Models\Team::where('leader_id', $user->id)->pluck('id');
+
+        $query->where(function ($q) use ($user, $teamIds) {
+            $q->whereIn('team_id', $teamIds)
+              ->orWhereHas('members', function ($q2) use ($user) {
+                  $q2->where('users.id', $user->id)
+                     ->where('project_user.status', 'accepted');
+              });
+        });
+    }
+
+    // FILTERS
+    if ($request->status && $request->status !== 'all') {
+        $query->where('status', $request->status);
+    }
+
+    if ($request->search) {
+        $query->where('name', 'like', "%{$request->search}%");
+    }
+
+    $projects = $query->latest()->get();
+
+    return view('projects.partials.list', compact('projects'));
+}
 }

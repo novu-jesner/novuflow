@@ -67,6 +67,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/dashboard/projects/{id}/invite/accept', [ProjectController::class, 'acceptInvite'])->name('projects.invite.accept');
     Route::post('/dashboard/projects/{id}/invite/reject', [ProjectController::class, 'rejectInvite'])->name('projects.invite.reject');
 
+Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
+
     // Kanban Board
     Route::get('/dashboard/board/{boardId}', [ProjectController::class, 'board'])->name('kanban.board');
 
