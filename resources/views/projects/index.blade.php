@@ -158,27 +158,39 @@
         </div>
     </div>
 
-    <!-- Filters -->
-    <div class="flex gap-4">
-        <div class="flex-1 relative">
-            <svg class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"></circle>
-                <path d="m21 21-4.3-4.3"></path>
-            </svg>
-            <input
-                type="text"
-                placeholder="Search projects..."
-                x-model="searchQuery"
-                class="w-full pl-10 pr-4 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors"
-            >
-        </div>
-        <select x-model="filter" class="w-48 px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors">
-            <option value="all">All Projects</option>
-            <option value="Active">Active</option>
-            <option value="On Hold">On Hold</option>
-            <option value="Completed">Completed</option>
-        </select>
+   <!-- Filters -->
+<form method="GET" action="{{ route('projects.index') }}" class="flex gap-4">
+
+    <!-- SEARCH -->
+    <div class="flex-1 relative">
+        <input
+            type="text"
+            name="search"
+            value="{{ request('search') }}"
+            placeholder="Search projects..."
+            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md"
+        >
     </div>
+
+    <!-- STATUS -->
+    <select name="status"
+        class="w-48 px-3 py-2 border border-gray-300 rounded-md">
+
+        <option value="all">All Projects</option>
+        <option value="Active">Active</option>
+        <option value="On Hold">On Hold</option>
+        <option value="Completed">Completed</option>
+
+    </select>
+
+    <!-- BUTTON -->
+    <button type="submit"
+        class="px-4 py-2 bg-[#3f8caf] text-white rounded-md">
+        Filter
+    </button>
+
+</form>
+
 
     <!-- Projects Grid -->
     @forelse($projects as $project)
