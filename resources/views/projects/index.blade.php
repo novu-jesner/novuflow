@@ -19,12 +19,12 @@
     <!-- Header -->
     <div class="flex items-center justify-between">
         <div>
-            <h1 class="text-3xl font-semibold text-gray-900">Projects</h1>
-            <p class="text-gray-600 mt-1">Manage and track all your projects</p>
+            <h1 class="text-3xl font-semibold text-foreground">Projects</h1>
+            <p class="text-muted-foreground mt-1">Manage and track all your projects</p>
         </div>
       @if(auth()->user()->role !== 'Employee')
     <button @click="showModal = true"
-        class="bg-gradient-to-r from-[#3f8caf] to-[#54acc8] text-white px-4 py-2 rounded-md hover:from-[#2a6a95] hover:to-[#3f8caf] transition-colors inline-flex items-center">
+        class="bg-gradient-to-r from-primary to-secondary text-primary-foreground px-4 py-2 rounded-md hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-ring/50 transition-opacity inline-flex items-center">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline mr-2">
             <path d="M5 12h14"></path>
             <path d="M12 5v14"></path>
@@ -36,37 +36,37 @@
 
     <!-- Create Project Modal -->
     <div x-show="showModal" x-cloak class="fixed inset-0 z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="showModal = false"></div>
-        <div style="display: flex; min-height: 100%; align-items: center; justify-content: center; padding: 1rem;">
-            <div style="position: relative; transform: none; overflow: hidden; border-radius: 0.5rem; background-color: white; text-align: left; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); width: 100%; max-width: 32rem;">
-                <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                    <h3 class="text-xl font-semibold leading-6 text-gray-900 mb-4">Create New Project</h3>
+        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity" @click="showModal = false"></div>
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="relative w-full max-w-xl overflow-hidden rounded-lg bg-card text-foreground shadow-xl border border-border">
+                <div class="px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                    <h3 class="text-xl font-semibold leading-6 text-foreground mb-4" id="modal-title">Create New Project</h3>
                     <form id="createProjectForm" action="{{ route('projects.store') }}" method="POST" class="space-y-4" @submit.prevent="createProject($event)">
                         @csrf
                         <div class="space-y-2">
-                            <label for="name" class="block text-sm font-medium text-gray-700">Project Name</label>
-                            <input type="text" id="name" name="name" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent">
+                            <label for="name" class="block text-sm font-medium">Project Name</label>
+                            <input type="text" id="name" name="name" required class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors">
                         </div>
                         <div class="space-y-2">
-                            <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
-                            <textarea id="description" name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent"></textarea>
+                            <label for="description" class="block text-sm font-medium">Description</label>
+                            <textarea id="description" name="description" rows="3" class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors"></textarea>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div class="space-y-2">
-                                <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
-                                <select id="status" name="status" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent">
+                                <label for="status" class="block text-sm font-medium">Status</label>
+                                <select id="status" name="status" required class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors">
                                     <option value="Active">Active</option>
                                     <option value="On Hold">On Hold</option>
                                     <option value="Completed">Completed</option>
                                 </select>
                             </div>
                             <div class="space-y-2">
-                                <label for="team_id" class="block text-sm font-medium text-gray-700">Team</label>
+                                <label for="team_id" class="block text-sm font-medium">Team</label>
                                 @if($userTeam)
                                     <input type="hidden" name="team_id" value="{{ $userTeam->id }}">
-                                    <input type="text" value="{{ $userTeam->name }}" disabled class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500 cursor-not-allowed">
+                                    <input type="text" value="{{ $userTeam->name }}" disabled class="w-full px-3 py-2 border border-border rounded-md bg-muted/30 text-muted-foreground cursor-not-allowed">
                                 @else
-                                    <select id="team_id" name="team_id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent">
+                                    <select id="team_id" name="team_id" class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors">
                                         <option value="">No Team</option>
                                         @foreach(\App\Models\Team::all() as $team)
                                         <option value="{{ $team->id }}">{{ $team->name }}</option>
@@ -94,14 +94,14 @@
                                 return this.members.filter(m => this.selected.includes(m.id));
                             }
                         }">
-                            <label class="block text-sm font-medium text-gray-700">Project Members</label>
+                            <label class="block text-sm font-medium">Project Members</label>
                             
                             <!-- Tags -->
                             <div class="flex flex-wrap gap-2 mb-2">
                                 <template x-for="member in selectedMembers" :key="member.id">
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium border border-blue-200">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-foreground text-xs font-medium border border-border">
                                         <span x-text="member.name"></span>
-                                        <button type="button" @click="selected = selected.filter(id => id !== member.id)" class="hover:text-blue-900 transition-colors">
+                                        <button type="button" @click="selected = selected.filter(id => id !== member.id)" class="hover:opacity-80 transition-opacity">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
                                         </button>
                                         <input type="hidden" name="member_ids[]" :value="member.id">
@@ -116,21 +116,21 @@
                                     @focus="showDropdown = true"
                                     @click.away="showDropdown = false"
                                     placeholder="Add members from your team..." 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent text-sm"
+                                    class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors text-sm"
                                 >
                                 <div 
                                     x-show="showDropdown && filtered.length > 0" 
-                                    class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-y-auto"
+                                    class="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-40 overflow-y-auto"
                                     style="display: none;"
                                 >
                                     <template x-for="member in filtered" :key="member.id">
                                         <button 
                                             type="button" 
                                             @click="selected.push(member.id); search = '';"
-                                            class="w-full text-left px-4 py-2 hover:bg-gray-50 flex flex-col transition-colors border-b last:border-0 border-gray-100"
+                                            class="w-full text-left px-4 py-2 hover:bg-muted/30 flex flex-col transition-colors border-b last:border-0 border-border"
                                         >
-                                            <span class="text-sm font-medium text-gray-900" x-text="member.name"></span>
-                                            <span class="text-xs text-gray-500" x-text="member.email"></span>
+                                            <span class="text-sm font-medium text-foreground" x-text="member.name"></span>
+                                            <span class="text-xs text-muted-foreground" x-text="member.email"></span>
                                         </button>
                                     </template>
                                 </div>
@@ -140,19 +140,19 @@
 
                         <div class="grid grid-cols-2 gap-4">
                             <div class="space-y-2">
-                                <label for="start_date" class="block text-sm font-medium text-gray-700">Start Date</label>
-                                <input type="date" id="start_date" name="start_date" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent">
+                                <label for="start_date" class="block text-sm font-medium">Start Date</label>
+                                <input type="date" id="start_date" name="start_date" required class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors">
                             </div>
                             <div class="space-y-2">
-                                <label for="due_date" class="block text-sm font-medium text-gray-700">Due Date</label>
-                                <input type="date" id="due_date" name="due_date" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent">
+                                <label for="due_date" class="block text-sm font-medium">Due Date</label>
+                                <input type="date" id="due_date" name="due_date" required class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors">
                             </div>
                         </div>
                     </form>
                 </div>
-                <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-2">
-                    <button type="submit" form="createProjectForm" class="inline-flex justify-center rounded-md bg-gradient-to-r from-[#3f8caf] to-[#54acc8] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:from-[#2a6a95] hover:to-[#3f8caf] transition-colors">Create Project</button>
-                    <button type="button" @click="showModal = false" class="inline-flex justify-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors">Cancel</button>
+                <div class="bg-muted/20 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-2 border-t border-border">
+                    <button type="submit" form="createProjectForm" class="inline-flex justify-center rounded-md bg-gradient-to-r from-primary to-secondary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-ring/50 transition-opacity">Create Project</button>
+                    <button type="button" @click="showModal = false" class="inline-flex justify-center rounded-md bg-card px-4 py-2 text-sm font-semibold text-foreground shadow-sm border border-border hover:bg-muted/30 transition-colors">Cancel</button>
                 </div>
             </div>
         </div>
@@ -161,7 +161,7 @@
     <!-- Filters -->
     <div class="flex gap-4">
         <div class="flex-1 relative">
-            <svg class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="11" cy="11" r="8"></circle>
                 <path d="m21 21-4.3-4.3"></path>
             </svg>
@@ -169,10 +169,10 @@
                 type="text"
                 placeholder="Search projects..."
                 x-model="searchQuery"
-                class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent"
+                class="w-full pl-10 pr-4 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors"
             >
         </div>
-        <select x-model="filter" class="w-48 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent">
+        <select x-model="filter" class="w-48 px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors">
             <option value="all">All Projects</option>
             <option value="Active">Active</option>
             <option value="On Hold">On Hold</option>
@@ -182,18 +182,18 @@
 
     <!-- Projects Grid -->
     @forelse($projects as $project)
-        <div class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow">
-            <div class="p-6 border-b">
+        <div class="bg-card border border-border rounded-lg shadow hover:shadow-lg transition-shadow">
+            <div class="p-6 border-b border-border">
                 <div class="flex items-start justify-between">
                     <div class="space-y-1">
                         <h3 class="font-semibold truncate">{{ $project->name }}</h3>
-                        <p class="text-sm text-gray-600 line-clamp-2">{{ $project->description }}</p>
+                        <p class="text-sm text-muted-foreground line-clamp-2">{{ $project->description }}</p>
                     </div>
                     <span class="px-2 py-1 text-xs rounded-full text-white
-                        @if($project->status == 'Active') bg-blue-500
-                        @elseif($project->status == 'On Hold') bg-yellow-500
-                        @elseif($project->status == 'Completed') bg-green-500
-                        @else bg-gray-500 @endif">
+                        @if($project->status == 'Active') bg-blue-600/90
+                        @elseif($project->status == 'On Hold') bg-yellow-500/90
+                        @elseif($project->status == 'Completed') bg-green-600/90
+                        @else bg-slate-600/90 @endif">
                         {{ $project->status }}
                     </span>
                 </div>
@@ -202,16 +202,16 @@
                 <!-- Progress -->
                 <div class="space-y-2">
                     <div class="flex items-center justify-between text-sm">
-                        <span class="text-gray-600">Progress</span>
+                        <span class="text-muted-foreground">Progress</span>
                         <span class="font-medium">{{ $project->progress }}%</span>
                     </div>
-                    <div class="w-full bg-gray-200 rounded-full h-2">
-                        <div class="bg-gradient-to-r from-[#3f8caf] to-[#54acc8] h-2 rounded-full" style="width: {{ $project->progress }}%"></div>
+                    <div class="w-full bg-muted/50 border border-border rounded-full h-2 overflow-hidden">
+                        <div class="bg-gradient-to-r from-primary to-secondary h-2 rounded-full" style="width: {{ $project->progress }}%"></div>
                     </div>
                 </div>
 
                 <!-- Dates -->
-                <div class="flex items-center gap-4 text-sm text-gray-600">
+                <div class="flex items-center gap-4 text-sm text-muted-foreground">
                     <div class="flex items-center gap-1">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect>
@@ -228,7 +228,7 @@
                 <!-- Team Members -->
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground">
                             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
                             <circle cx="9" cy="7" r="4"></circle>
                             <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
@@ -240,22 +240,22 @@
                                 $memberCount = $acceptedMembers->count() + 1; // +1 for creator
                             @endphp
                             <!-- Creator Avatar -->
-                            <div class="w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold bg-gradient-to-br from-[#3f8caf] to-[#54acc8] shadow-sm" title="{{ $project->creator->name }} (Owner)">
+                            <div class="w-7 h-7 rounded-full border-2 border-card flex items-center justify-center text-white text-xs font-bold bg-gradient-to-br from-primary to-secondary shadow-sm" title="{{ $project->creator->name }} (Owner)">
                                 {{ substr($project->creator->name, 0, 1) }}
                             </div>
                             <!-- Accepted Members -->
                             @foreach($acceptedMembers->take(3) as $index => $member)
-                                <div class="w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold bg-gray-400 shadow-sm" title="{{ $member->name }}">
+                                <div class="w-7 h-7 rounded-full border-2 border-card flex items-center justify-center text-white text-xs font-bold bg-muted shadow-sm" title="{{ $member->name }}">
                                     {{ substr($member->name, 0, 1) }}
                                 </div>
                             @endforeach
                             @if($memberCount > 4)
-                                <div class="w-7 h-7 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-xs text-gray-600 font-bold">+{{ $memberCount - 4 }}</div>
+                                <div class="w-7 h-7 rounded-full bg-muted/40 border-2 border-card flex items-center justify-center text-xs text-muted-foreground font-bold">+{{ $memberCount - 4 }}</div>
                             @endif
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <a href="{{ route('projects.show', $project->id) }}" class="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors">
+                        <a href="{{ route('projects.show', $project->id) }}" class="px-3 py-1 border border-border rounded-md text-sm hover:bg-muted/30 transition-colors">
                             View Details
                         </a>
                     </div>
@@ -263,8 +263,8 @@
             </div>
         </div>
     @empty
-        <div class="bg-white rounded-lg shadow p-8 text-center">
-            <p class="text-gray-500">No projects found. Create your first project!</p>
+        <div class="bg-card border border-border rounded-lg shadow p-8 text-center">
+            <p class="text-muted-foreground">No projects found. Create your first project!</p>
         </div>
     @endforelse
 </div>

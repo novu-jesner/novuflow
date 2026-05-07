@@ -1,4 +1,4 @@
-<header class="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-white px-6" 
+<header class="sticky top-0 z-40 flex h-16 items-center gap-4 border-b border-border bg-surface/90 px-6 backdrop-blur supports-[backdrop-filter]:bg-surface/75 transition-colors" 
     x-data="{ 
         mobileMenuOpen: false, 
         notificationsOpen: false, 
@@ -74,7 +74,7 @@
         }
     }">
     <!-- Mobile menu -->
-    <button @click="mobileMenuOpen = true" class="lg:hidden p-2 hover:bg-gray-100 rounded-md">
+    <button @click="mobileMenuOpen = true" class="lg:hidden p-2 hover:bg-muted/60 rounded-md transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="4" x2="20" y1="12" y2="12"></line>
             <line x1="4" x2="20" y1="6" y2="6"></line>
@@ -84,16 +84,16 @@
 
     <!-- Mobile sidebar overlay -->
     <div x-show="mobileMenuOpen" class="fixed inset-0 z-50 lg:hidden" @click.away="mobileMenuOpen = false">
-        <div class="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r">
+        <div class="fixed inset-y-0 left-0 z-50 w-64 bg-surface border-r border-border">
             <div class="flex h-16 shrink-0 items-center px-6">
                 <div class="flex items-center gap-2">
                     <img src="{{ asset('assets/novuflow_logo.png') }}" alt="NovuFlow Logo" class="h-8 w-auto">
-                    <span class="text-xl font-semibold text-[#2a6a95]">NovuFlow</span>
+                    <span class="text-xl font-semibold text-primary">NovuFlow</span>
                 </div>
             </div>
             <div class="px-6 py-4">
-                <a href="{{ url('/dashboard') }}" class="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400">
+                <a href="{{ url('/dashboard') }}" class="flex items-center gap-3 p-2 rounded-md text-foreground/90 hover:bg-muted/50 hover:text-foreground transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground">
                         <rect width="7" height="9" x="3" y="3" rx="1"></rect>
                         <rect width="7" height="5" x="14" y="3" rx="1"></rect>
                         <rect width="7" height="9" x="14" y="12" rx="1"></rect>
@@ -101,8 +101,8 @@
                     </svg>
                     Dashboard
                 </a>
-                <a href="{{ url('/dashboard/projects') }}" class="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400">
+                <a href="{{ url('/dashboard/projects') }}" class="flex items-center gap-3 p-2 rounded-md text-foreground/90 hover:bg-muted/50 hover:text-foreground transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground">
                         <path d="M3 3h18v18H3z"></path>
                         <path d="M9 3v18"></path>
                         <path d="M3 9h18"></path>
@@ -118,17 +118,38 @@
 
     <!-- Right Side Controls -->
     <div class="flex items-center gap-4 sm:gap-6">
+        <!-- Theme toggle -->
+        <button
+            type="button"
+            class="inline-flex items-center justify-center rounded-md p-2 hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-ring/50 transition-colors"
+            x-cloak
+            :aria-pressed="$store.theme.isDark"
+            :aria-label="$store.theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+            @click="$store.theme.toggle()"
+        >
+            <svg x-show="!$store.theme.isDark" x-transition.opacity class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                <circle cx="12" cy="12" r="4"></circle>
+                <path d="M12 2v2"></path><path d="M12 20v2"></path>
+                <path d="M4.93 4.93l1.41 1.41"></path><path d="M17.66 17.66l1.41 1.41"></path>
+                <path d="M2 12h2"></path><path d="M20 12h2"></path>
+                <path d="M6.34 17.66l-1.41 1.41"></path><path d="M19.07 4.93l-1.41 1.41"></path>
+            </svg>
+            <svg x-show="$store.theme.isDark" x-transition.opacity class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+        </button>
+
         <!-- Search -->
         <div class="relative w-48 lg:w-64">
-            <svg class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="11" cy="11" r="8"></circle>
                 <path d="m21 21-4.3-4.3"></path>
             </svg>
-            <input type="search" placeholder="Search..." class="w-full pl-10 pr-4 py-2 bg-gray-50 border-0 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] text-sm">
+            <input type="search" placeholder="Search..." class="w-full pl-10 pr-4 py-2 bg-muted/40 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 text-sm transition-colors">
         </div>
         <!-- Notifications -->
         <div class="relative" x-data="{ open: false }">
-            <button @click="open = !open" class="relative p-2 hover:bg-gray-100 rounded-md">
+            <button @click="open = !open" class="relative p-2 hover:bg-muted/60 rounded-md transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
                     <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
@@ -140,60 +161,60 @@
                  x-transition:enter-start="opacity-0 scale-95"
                  x-transition:enter-end="opacity-100 scale-100"
                  @click.away="open = false" 
-                 class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-100 z-50 overflow-hidden" style="display: none;">
-                <div class="px-4 py-3 border-b bg-gray-50/50 flex items-center justify-between">
-                    <span class="font-semibold text-sm text-gray-900">Notifications</span>
-                    <button x-show="unreadCount > 0" @click="markAllRead()" class="text-[11px] font-medium text-[#3f8caf] hover:text-[#2a6a95] transition-colors">
+                 class="absolute right-0 mt-2 w-80 bg-popover rounded-lg shadow-xl border border-border z-50 overflow-hidden" style="display: none;">
+                <div class="px-4 py-3 border-b border-border bg-muted/20 flex items-center justify-between">
+                    <span class="font-semibold text-sm text-foreground">Notifications</span>
+                    <button x-show="unreadCount > 0" @click="markAllRead()" class="text-[11px] font-medium text-primary hover:opacity-90 transition-opacity">
                         Mark all as read
                     </button>
                 </div>
                 <div class="max-h-96 overflow-y-auto">
                     <template x-for="notification in notifications" :key="notification.id">
-                        <div class="px-4 py-3 text-sm border-b last:border-0 hover:bg-gray-50 cursor-pointer flex gap-3" 
-                             :class="!notification.read ? 'bg-blue-50/30' : ''"
+                        <div class="px-4 py-3 text-sm border-b border-border last:border-0 hover:bg-muted/30 cursor-pointer flex gap-3 transition-colors" 
+                             :class="!notification.read ? 'bg-primary/5' : ''"
                              @click="markAsRead(notification.id)">
                             
                             <!-- Icon based on type -->
                             <div class="shrink-0 mt-0.5">
                                 <template x-if="notification.type === 'task_commented'">
-                                    <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+                                    <div class="w-8 h-8 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-300 flex items-center justify-center">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                                     </div>
                                 </template>
                                 <template x-if="notification.type === 'task_assigned'">
-                                    <div class="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center">
+                                    <div class="w-8 h-8 rounded-full bg-green-500/15 text-green-600 dark:text-green-300 flex items-center justify-center">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
                                     </div>
                                 </template>
                                 <template x-if="notification.type === 'project_invite'">
-                                    <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center">
+                                    <div class="w-8 h-8 rounded-full bg-purple-500/15 text-purple-600 dark:text-purple-300 flex items-center justify-center">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v7"/></svg>
                                     </div>
                                 </template>
                                 <template x-if="!['task_commented', 'task_assigned', 'project_invite'].includes(notification.type)">
-                                    <div class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center">
+                                    <div class="w-8 h-8 rounded-full bg-muted/60 text-muted-foreground flex items-center justify-center">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="16" y2="12"/><line x1="12" x2="12.01" y1="8" y2="8"/></svg>
                                     </div>
                                 </template>
                             </div>
 
                             <div class="flex-1 min-w-0">
-                                <div class="font-medium text-gray-900 truncate" x-text="notification.title"></div>
-                                <div class="text-gray-600 text-xs mt-0.5 line-clamp-2 leading-relaxed" x-text="notification.message"></div>
-                                <div x-show="notification.comment_body" class="mt-1 px-2 py-1 bg-gray-100/50 rounded text-[10px] text-gray-500 italic truncate border border-gray-100" x-text="'&quot;' + notification.comment_body + '&quot;'"></div>
-                                <div class="text-gray-400 text-[10px] mt-1" x-text="new Date(notification.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})"></div>
+                                <div class="font-medium text-foreground truncate" x-text="notification.title"></div>
+                                <div class="text-muted-foreground text-xs mt-0.5 line-clamp-2 leading-relaxed" x-text="notification.message"></div>
+                                <div x-show="notification.comment_body" class="mt-1 px-2 py-1 bg-muted/30 rounded text-[10px] text-muted-foreground italic truncate border border-border" x-text="'&quot;' + notification.comment_body + '&quot;'"></div>
+                                <div class="text-muted-foreground/80 text-[10px] mt-1" x-text="new Date(notification.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})"></div>
                             </div>
 
                             <div x-show="!notification.read" class="shrink-0 mt-1.5">
-                                <div class="w-1.5 h-1.5 rounded-full bg-[#3f8caf]"></div>
+                                <div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
                             </div>
                         </div>
                     </template>
-                    <div x-show="notifications.length === 0" class="px-4 py-8 text-center text-gray-400 text-sm">
+                    <div x-show="notifications.length === 0" class="px-4 py-8 text-center text-muted-foreground text-sm">
                         No new notifications
                     </div>
                 </div>
-                <a href="{{ route('notifications.index') }}" class="block px-4 py-2 text-center text-xs font-semibold text-[#3f8caf] bg-gray-50 hover:bg-gray-100 transition-colors border-t">
+                <a href="{{ route('notifications.index') }}" class="block px-4 py-2 text-center text-xs font-semibold text-primary bg-muted/20 hover:bg-muted/40 transition-colors border-t border-border">
                     View All Notifications
                 </a>
             </div>
@@ -201,18 +222,18 @@
 
         <!-- User menu -->
         <div class="relative" x-data="{ open: false }">
-            <button @click="open = !open" class="flex items-center gap-2 p-1 hover:bg-gray-100 rounded-md">
-                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#3f8caf] to-[#54acc8] flex items-center justify-center text-white font-semibold">
+            <button @click="open = !open" class="flex items-center gap-2 p-1 hover:bg-muted/60 rounded-md transition-colors">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-semibold">
                     {{ auth()->user()->name ? auth()->user()->name[0] : 'U' }}
                 </div>
                 <div class="hidden md:block text-left">
                     <div class="text-sm">{{ auth()->user()->name ?? 'User' }}</div>
-                    <div class="text-xs text-gray-500">{{ auth()->user()->role ?? 'Employee' }}</div>
+                    <div class="text-xs text-muted-foreground">{{ auth()->user()->role ?? 'Employee' }}</div>
                 </div>
             </button>
-            <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50">
-                <div class="p-3 border-b font-semibold">My Account</div>
-                <a href="{{ route('profile') }}" class="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50">
+            <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-52 bg-popover rounded-lg shadow-lg border border-border z-50 overflow-hidden" style="display:none;">
+                <div class="p-3 border-b border-border font-semibold text-foreground bg-muted/10">My Account</div>
+                <a href="{{ route('profile') }}" class="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted/30 transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
                         <circle cx="12" cy="7" r="4"></circle>
@@ -221,7 +242,7 @@
                 </a>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button type="submit" class="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 text-left w-full">
+                    <button type="submit" class="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted/30 text-left w-full transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                             <polyline points="16 17 21 12 16 7"></polyline>

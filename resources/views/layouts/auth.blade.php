@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="min-h-screen bg-gradient-to-br from-[#aecfdd] via-[#54acc8] to-[#3f8caf] flex items-center justify-center p-4">
+<div class="min-h-screen bg-gradient-to-br from-accent via-secondary to-primary dark:from-background dark:via-popover dark:to-surface flex items-center justify-center p-4 transition-colors">
     <div class="w-full max-w-md">
         @yield('auth-content')
     </div>

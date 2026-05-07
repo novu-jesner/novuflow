@@ -14,49 +14,49 @@
     }
 }">
     <div class="flex items-center gap-4 mb-6">
-        <a href="{{ route('kanban.board', $task->project_id) }}" class="text-gray-600 hover:text-gray-900">
+        <a href="{{ route('kanban.board', $task->project_id) }}" class="text-muted-foreground hover:text-foreground transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="m15 18-6-6 6-6"/>
             </svg>
         </a>
-        <h1 class="text-2xl font-semibold text-gray-900">Edit Task</h1>
+        <h1 class="text-2xl font-semibold text-foreground">Edit Task</h1>
     </div>
 
-    <div class="bg-white rounded-lg shadow">
+    <div class="bg-card border border-border rounded-lg shadow">
         <form action="{{ route('tasks.update', $task->id) }}" method="POST" class="p-6 space-y-6" @submit.prevent="updateTask">
             @csrf
             @method('PUT')
 
             <div class="space-y-2">
-                <label for="title" class="text-sm font-medium text-gray-700">Task Title *</label>
+                <label for="title" class="text-sm font-medium">Task Title *</label>
                 <input
                     type="text"
                     id="title"
                     name="title"
                     value="{{ old('title', $task->title) }}"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent"
+                    class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors"
                 >
             </div>
 
             <div class="space-y-2">
-                <label for="description" class="text-sm font-medium text-gray-700">Description</label>
+                <label for="description" class="text-sm font-medium">Description</label>
                 <textarea
                     id="description"
                     name="description"
                     rows="4"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent"
+                    class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors"
                 >{{ old('description', $task->description) }}</textarea>
             </div>
 
             <div class="grid gap-4 md:grid-cols-2">
                 <div class="space-y-2">
-                    <label for="status" class="text-sm font-medium text-gray-700">Status *</label>
+                    <label for="status" class="text-sm font-medium">Status *</label>
                     <select
                         id="status"
                         name="status"
                         required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent"
+                        class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors"
                     >
                         <option value="To Do" {{ old('status', $task->status) == 'To Do' ? 'selected' : '' }}>To Do</option>
                         <option value="In Progress" {{ old('status', $task->status) == 'In Progress' ? 'selected' : '' }}>In Progress</option>
@@ -66,12 +66,12 @@
                 </div>
 
                 <div class="space-y-2">
-                    <label for="priority" class="text-sm font-medium text-gray-700">Priority *</label>
+                    <label for="priority" class="text-sm font-medium">Priority *</label>
                     <select
                         id="priority"
                         name="priority"
                         required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent"
+                        class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors"
                     >
                         <option value="Low" {{ old('priority', $task->priority) == 'Low' ? 'selected' : '' }}>Low</option>
                         <option value="Medium" {{ old('priority', $task->priority) == 'Medium' ? 'selected' : '' }}>Medium</option>
@@ -82,12 +82,12 @@
 
             <div class="grid gap-4 md:grid-cols-2">
                 <div class="space-y-2">
-                    <label for="project_id" class="text-sm font-medium text-gray-700">Project *</label>
+                    <label for="project_id" class="text-sm font-medium">Project *</label>
                     <select
                         id="project_id"
                         name="project_id"
                         required
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent"
+                        class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors"
                     >
                         @foreach($projects as $project)
                         <option value="{{ $project->id }}" {{ old('project_id', $task->project_id) == $project->id ? 'selected' : '' }}>
@@ -98,11 +98,11 @@
                 </div>
 
                 <div class="space-y-2">
-                    <label for="assigned_to" class="text-sm font-medium text-gray-700">Assigned To</label>
+                    <label for="assigned_to" class="text-sm font-medium">Assigned To</label>
                     <select
                         id="assigned_to"
                         name="assigned_to"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent"
+                        class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors"
                     >
                         <option value="">Unassigned</option>
                         @foreach($users as $user)
@@ -115,21 +115,21 @@
             </div>
 
             <div class="space-y-2">
-                <label for="due_date" class="text-sm font-medium text-gray-700">Due Date</label>
+                <label for="due_date" class="text-sm font-medium">Due Date</label>
                 <input
                     type="date"
                     id="due_date"
                     name="due_date"
                     value="{{ old('due_date', $task->due_date ? $task->due_date->format('Y-m-d') : '') }}"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent"
+                    class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors"
                 >
             </div>
 
-            <div class="flex items-center justify-between pt-4 border-t">
+            <div class="flex items-center justify-between pt-4 border-t border-border">
                 <button
                     type="button"
                     @click="deleteTask()"
-                    class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                    class="px-4 py-2 bg-destructive text-destructive-foreground rounded-md hover:opacity-90 transition-opacity"
                 >
                     Delete Task
                 </button>
@@ -137,13 +137,13 @@
                 <div class="flex gap-3">
                     <a
                         href="{{ route('tasks.show', $task->id) }}"
-                        class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                        class="px-4 py-2 border border-border text-foreground rounded-md hover:bg-muted/30 transition-colors"
                     >
                         Cancel
                     </a>
                     <button
                         type="submit"
-                        class="px-4 py-2 bg-gradient-to-r from-[#3f8caf] to-[#54acc8] text-white rounded-md hover:from-[#2a6a95] hover:to-[#3f8caf] transition-colors"
+                        class="px-4 py-2 bg-gradient-to-r from-primary to-secondary text-primary-foreground rounded-md hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-ring/50 transition-opacity"
                     >
                         Update Task
                     </button>
