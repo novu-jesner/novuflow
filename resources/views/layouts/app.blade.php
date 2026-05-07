@@ -91,14 +91,120 @@
             Alpine.store('toast', {
                 items: [],
                 counter: 0,
-                show(message, type = 'success') {
+                show(message, type = 'success', duration = 3500) {
                     const id = ++this.counter;
                     this.items.push({ id, message, type });
-                    setTimeout(() => this.remove(id), 3500);
+                    setTimeout(() => this.remove(id), duration);
                 },
                 remove(id) {
                     this.items = this.items.filter(n => n.id !== id);
                 }
+            });
+
+            Alpine.store('wellness', {
+                storageKey: 'nv-wellness-{{ auth()->id() }}',
+                isOnLunch: false,
+                hasNotifiedLunch: false,
+                hasNotifiedReturn: false,
+                healthTips: ['Hydrate 💧', 'Stretch your back 🧘', 'Rest your eyes 👁️'],
+                currentDate: null,
+
+                init() {
+                    this.loadState();
+                    this.checkTime();
+                    setInterval(() => this.checkTime(), 60000);
+                },
+
+                today() {
+                    return new Date().toISOString().slice(0, 10);
+                },
+
+                loadState() {
+                    try {
+                        const raw = localStorage.getItem(this.storageKey);
+                        if (raw) {
+                            const parsed = JSON.parse(raw);
+                            if (parsed && parsed.date === this.today()) {
+                                this.hasNotifiedLunch = parsed.hasNotifiedLunch || false;
+                                this.hasNotifiedReturn = parsed.hasNotifiedReturn || false;
+                            }
+                        }
+                    } catch (_) {
+                        // ignore malformed data
+                    }
+                    this.currentDate = this.today();
+                },
+
+                saveState() {
+                    try {
+                        localStorage.setItem(this.storageKey, JSON.stringify({
+                            date: this.today(),
+                            hasNotifiedLunch: this.hasNotifiedLunch,
+                            hasNotifiedReturn: this.hasNotifiedReturn,
+                        }));
+                    } catch (_) {}
+                },
+
+                checkTime() {
+                    const now = new Date();
+                    const today = this.today();
+                    const day = now.getDay();
+                    const minutes = now.getHours() * 60 + now.getMinutes();
+                    const isWeekday = day >= 1 && day <= 5;
+
+                    if (this.currentDate !== today) {
+                        this.currentDate = today;
+                        this.hasNotifiedLunch = false;
+                        this.hasNotifiedReturn = false;
+                        this.saveState();
+                    }
+
+                    this.isOnLunch = isWeekday && minutes >= 690 && minutes < 750;
+
+                    if (!isWeekday) {
+                        return;
+                    }
+
+                    if (minutes >= 690 && minutes < 750 && !this.hasNotifiedLunch) {
+                        this.notifyLunch();
+                    }
+
+                    if (minutes >= 750 && !this.hasNotifiedReturn) {
+                        this.notifyReturn();
+                    }
+                },
+
+                notifyLunch() {
+                    const tip = this.healthTips[Math.floor(Math.random() * this.healthTips.length)];
+                    const message = `It’s 11:30 AM! Time for your scheduled lunch break. 🍱 Health is wealth—recharge and enjoy! ${tip}`;
+                    Alpine.store('toast').show(message, 'info', 20000);
+                    this.showBrowserNotification('Lunch Break', message);
+                    this.hasNotifiedLunch = true;
+                    this.saveState();
+                },
+
+                notifyReturn() {
+                    const message = 'Welcome back! Hope you had a refreshing break.';
+                    Alpine.store('toast').show(message, 'success', 20000);
+                    this.showBrowserNotification('Welcome Back', message);
+                    this.hasNotifiedReturn = true;
+                    this.saveState();
+                },
+
+                showBrowserNotification(title, body) {
+                    if (!('Notification' in window)) {
+                        return;
+                    }
+                    if (Notification.permission === 'granted') {
+                        new Notification(title, { body });
+                    } else if (Notification.permission !== 'denied') {
+                        Notification.requestPermission().then((permission) => {
+                            if (permission === 'granted') {
+                                new Notification(title, { body });
+                            }
+                        });
+                    }
+                },
             });
         });
 
@@ -178,6 +284,10 @@
             @if(session('error'))
                 Alpine.store('toast').show("{{ session('error') }}", 'error');
             @endif
+
+            if (window.Alpine && Alpine.store('wellness')) {
+                Alpine.store('wellness').init();
+            }
         });
     </script>
 </head>
