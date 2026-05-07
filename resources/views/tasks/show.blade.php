@@ -467,7 +467,7 @@
             <div class="divide-y divide-border">
                 <template x-for="(comment, index) in (showAllComments ? comments : comments.slice(0, commentLimit))" :key="comment.id">
                     <div class="py-6 first:pt-0">
-                    <div :id="'comment-' + comment.id" class="flex gap-3 group target:bg-blue-50 target:ring-2 target:ring-blue-100 target:rounded-xl p-2 transition-all duration-500 w-full min-w-0">
+                    <div :id="'comment-' + comment.id" class="flex gap-3 group target:bg-primary/5 target:ring-2 target:ring-primary/20 target:rounded-xl p-2 transition-all duration-500 w-full min-w-0">
                         <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-base font-bold shrink-0 shadow-sm"
                              x-text="comment.user.initials"></div>
                         <div class="flex-1 min-w-0">
