@@ -180,6 +180,26 @@
         </select>
     </div>
 
+    <!-- STATUS -->
+    <select name="status"
+        class="w-48 px-3 py-2 border border-gray-300 rounded-md">
+
+        <option value="all">All Projects</option>
+        <option value="Active">Active</option>
+        <option value="On Hold">On Hold</option>
+        <option value="Completed">Completed</option>
+
+    </select>
+
+    <!-- BUTTON -->
+    <button type="submit"
+        class="px-4 py-2 bg-[#3f8caf] text-white rounded-md">
+        Filter
+    </button>
+
+</form>
+
+
     <!-- Projects Grid -->
     @forelse($projects as $project)
         <div class="bg-card border border-border rounded-lg shadow hover:shadow-lg transition-shadow">
