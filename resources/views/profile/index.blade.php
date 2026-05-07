@@ -28,9 +28,6 @@
                 <div class="w-24 h-24 rounded-2xl bg-accent/25 backdrop-blur-md border border-white/30 flex items-center justify-center text-4xl font-bold shadow-xl animate-pulse-slow">
                     {{ strtoupper(substr($user->name, 0, 1)) }}
                 </div>
-                <div class="absolute -bottom-2 -right-2 w-8 h-8 rounded-lg bg-green-500 border-4 border-white flex items-center justify-center shadow-md" title="Account Active">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                </div>
             </div>
             <div class="text-center md:text-left">
                 <h1 class="text-3xl font-bold tracking-tight">{{ $user->name }}</h1>

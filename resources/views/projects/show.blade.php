@@ -307,16 +307,15 @@
             <div class="p-6">
                 <div class="space-y-4">
                     <!-- Project Creator (Owner) -->
-                    <div class="flex items-center justify-between p-4 border border-blue-100 bg-blue-50/30 rounded-lg shadow-sm">
+                    <div class="flex items-center justify-between p-4 border border-blue-100 dark:border-blue-900/30 bg-blue-50/30 dark:bg-blue-950/20 rounded-lg shadow-sm">
                         <div class="flex items-center gap-3">
                             <div class="relative">
                                 <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-semibold shadow-sm">{{ substr($project->creator->name, 0, 1) }}</div>
-                                <div class="absolute -right-0.5 -bottom-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
                             </div>
                             <div>
                                 <div class="flex items-center gap-2">
                                     <div class="font-medium text-foreground">{{ $project->creator->name }}</div>
-                                    <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold uppercase tracking-wider rounded-full border border-blue-200">Project Owner</span>
+                                    <span class="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-[10px] font-bold uppercase tracking-wider rounded-full border border-blue-200 dark:border-blue-800">Project Owner</span>
                                 </div>
                                 <div class="text-xs text-muted-foreground">{{ $project->creator->role }}</div>
                             </div>
@@ -339,15 +338,12 @@
                             <div class="flex items-center gap-3">
                                 <div class="relative">
                                     <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-semibold shadow-sm">{{ substr($member->name, 0, 1) }}</div>
-                                    @if($member->pivot->status === 'accepted')
-                                        <div class="absolute -right-0.5 -bottom-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
-                                    @endif
                                 </div>
                                 <div>
                                     <div class="flex items-center gap-2">
                                         <div class="font-medium text-foreground">{{ $member->name }}</div>
                                         @if($member->pivot->status === 'pending')
-                                            <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-[10px] font-bold uppercase tracking-wider rounded-full border border-yellow-200">Invited</span>
+                                            <span class="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 text-[10px] font-bold uppercase tracking-wider rounded-full border border-yellow-200 dark:border-yellow-800">Invited</span>
                                         @endif
                                     </div>
                                     <div class="text-xs text-muted-foreground">{{ $member->role }}</div>
