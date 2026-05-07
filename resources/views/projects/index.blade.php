@@ -168,13 +168,13 @@
             name="search"
             value="{{ request('search') }}"
             placeholder="Search projects..."
-            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md"
+            class="w-full pl-10 pr-4 py-2 border border-input rounded-md bg-surface text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors"
         >
     </div>
 
     <!-- STATUS -->
     <select name="status"
-        class="w-48 px-3 py-2 border border-gray-300 rounded-md">
+        class="w-48 px-3 py-2 border border-input rounded-md bg-surface text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors">
 
         <option value="all">All Projects</option>
         <option value="Active">Active</option>
@@ -252,17 +252,17 @@
                                 $memberCount = $acceptedMembers->count() + 1; // +1 for creator
                             @endphp
                             <!-- Creator Avatar -->
-                            <div class="w-7 h-7 rounded-full border-2 border-card flex items-center justify-center text-white text-xs font-bold bg-gradient-to-br from-primary to-secondary shadow-sm" title="{{ $project->creator->name }} (Owner)">
+                            <div class="w-7 h-7 rounded-full border-2 border-background flex items-center justify-center text-white text-xs font-bold bg-gradient-to-br from-primary to-secondary shadow-md ring-2 ring-border" title="{{ $project->creator->name }} (Owner)">
                                 {{ substr($project->creator->name, 0, 1) }}
                             </div>
                             <!-- Accepted Members -->
                             @foreach($acceptedMembers->take(3) as $index => $member)
-                                <div class="w-7 h-7 rounded-full border-2 border-card flex items-center justify-center text-white text-xs font-bold bg-muted shadow-sm" title="{{ $member->name }}">
+                                <div class="w-7 h-7 rounded-full border-2 border-background flex items-center justify-center text-foreground text-xs font-bold bg-muted shadow-md ring-2 ring-border" title="{{ $member->name }}">
                                     {{ substr($member->name, 0, 1) }}
                                 </div>
                             @endforeach
                             @if($memberCount > 4)
-                                <div class="w-7 h-7 rounded-full bg-muted/40 border-2 border-card flex items-center justify-center text-xs text-muted-foreground font-bold">+{{ $memberCount - 4 }}</div>
+                                <div class="w-7 h-7 rounded-full bg-muted/40 border-2 border-background flex items-center justify-center text-xs text-foreground font-bold ring-2 ring-border">+{{ $memberCount - 4 }}</div>
                             @endif
                         </div>
                     </div>
