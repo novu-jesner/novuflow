@@ -249,6 +249,10 @@
 
     @php
         $isCreator = auth()->id() === $project->created_by || auth()->user()->role === 'SuperAdmin' || auth()->user()->role === 'Admin';
+        $isMemberOrEmployee = in_array(auth()->user()->role, ['Employee', 'Team Leader']) ||
+                               ($project->members()->where('users.id', auth()->id())->where('project_user.status', 'accepted')->exists() &&
+                                $project->created_by !== auth()->id());
+        $currentView = $viewFilter ?? ($isCreator ? 'all' : 'my-tasks');
     @endphp
 
     <!-- Header -->
@@ -258,6 +262,18 @@
             <p class="text-muted-foreground mt-1">Project board for {{ $project->name }}</p>
         </div>
         <div class="flex items-center gap-2">
+            @if($isMemberOrEmployee || $isCreator)
+            <div class="flex items-center bg-muted/30 border border-border rounded-md p-1 mr-2">
+                <a href="{{ route('kanban.board', ['boardId' => $project->id, 'view' => 'my-tasks']) }}"
+                   class="px-3 py-1.5 text-sm font-medium rounded transition-colors {{ $currentView === 'my-tasks' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground' }}">
+                    My Tasks
+                </a>
+                <a href="{{ route('kanban.board', ['boardId' => $project->id, 'view' => 'all']) }}"
+                   class="px-3 py-1.5 text-sm font-medium rounded transition-colors {{ $currentView === 'all' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground' }}">
+                    All Tasks
+                </a>
+            </div>
+            @endif
             <a href="{{ route('projects.show', $project->id) }}" class="px-4 py-2 border border-border rounded-md hover:bg-muted/30 transition-colors inline-flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline mr-2">
                     <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.39a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
@@ -561,11 +577,15 @@
                         </div>
                         <p class="text-sm text-muted-foreground mb-3 line-clamp-2">{{ $task->description }}</p>
                         <div class="flex items-center justify-between">
-                            @if($task->assignee)
-                            <div class="w-6 h-6 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-white text-xs">{{ substr($task->assignee->name, 0, 1) }}</div>
-                            @else
-                            <div class="w-6 h-6 rounded-full bg-muted border-2 border-card flex items-center justify-center text-white text-xs">-</div>
-                            @endif
+                            <div class="flex items-center gap-2">
+                                @if($task->assignee)
+                                <div class="w-6 h-6 rounded-full bg-blue-500 border-2 border-background flex items-center justify-center text-white text-xs">{{ substr($task->assignee->name, 0, 1) }}</div>
+                                <span class="text-xs text-muted-foreground">{{ $task->assignee->name }}</span>
+                                @else
+                                <div class="w-6 h-6 rounded-full bg-muted border-2 border-card flex items-center justify-center text-white text-xs">-</div>
+                                <span class="text-xs text-muted-foreground">Unassigned</span>
+                                @endif
+                            </div>
                             <div class="flex items-center gap-2 text-xs text-muted-foreground">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect>

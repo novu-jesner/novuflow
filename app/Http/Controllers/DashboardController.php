@@ -25,11 +25,12 @@ class DashboardController extends Controller
         }
 
         if (!$user->isAdmin()) {
-            // Filter Projects: created by user, OR member of, OR in user's teams
+            // Filter Projects: created by user, OR member with accepted status, OR in user's teams
             $projectQuery->where(function($q) use ($user, $teamIds) {
                 $q->where('created_by', $user->id)
                   ->orWhereHas('members', function($mq) use ($user) {
-                      $mq->where('users.id', $user->id);
+                      $mq->where('users.id', $user->id)
+                        ->where('project_user.status', 'accepted');
                   });
                 
                 if (!empty($teamIds)) {
@@ -41,7 +42,8 @@ class DashboardController extends Controller
             $taskQuery->whereHas('project', function($q) use ($user, $teamIds) {
                 $q->where('created_by', $user->id)
                   ->orWhereHas('members', function($mq) use ($user) {
-                      $mq->where('users.id', $user->id);
+                      $mq->where('users.id', $user->id)
+                        ->where('project_user.status', 'accepted');
                   });
                 
                 if (!empty($teamIds)) {

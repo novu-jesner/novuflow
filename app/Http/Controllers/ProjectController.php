@@ -283,16 +283,16 @@ public function store(Request $request)
         return view('projects.show', compact('project', 'tasks', 'columns', 'statusCounts', 'teamMembers', 'currentMemberIds', 'activities'));
     }
 
-    public function board($boardId)
+    public function board(Request $request, $boardId)
     {
         $project = Project::with('team', 'members', 'columns')->findOrFail($boardId);
-        
+
         $user = auth()->user();
         if ($user->role !== 'SuperAdmin' && $user->role !== 'Admin') {
             $isCreator = $project->created_by === $user->id;
             $isMember = $project->members()->where('users.id', $user->id)->where('project_user.status', 'accepted')->exists();
             $isTeamLead = $user->role === 'Team Leader' && $project->team_id && \App\Models\Team::where('id', $project->team_id)->where('leader_id', $user->id)->exists();
-            
+
             if (!$isCreator && !$isMember && !$isTeamLead) {
                 if ($project->members()->where('users.id', $user->id)->where('project_user.status', 'pending')->exists()) {
                     return redirect()->route('projects.invitation', $boardId);
@@ -303,8 +303,21 @@ public function store(Request $request)
 
         $tasksQuery = Task::where('project_id', $project->id)->with('assignee');
 
-        // Employees only see tasks assigned to them
-        if ($user->role === 'Employee') {
+        // All users can toggle between all tasks and their tasks only
+        $viewFilter = $request->get('view', 'all'); // default to all for creators/admins, my-tasks for others
+
+        // Determine if user is member/employee (not creator/admin)
+        $isMemberOrEmployee = in_array($user->role, ['Employee', 'Team Leader']) ||
+                              ($project->members()->where('users.id', $user->id)->where('project_user.status', 'accepted')->exists() &&
+                               $project->created_by !== $user->id);
+
+        // Set default view based on role
+        if (!in_array($user->role, ['SuperAdmin', 'Admin']) && $project->created_by !== $user->id) {
+            $viewFilter = $request->get('view', 'my-tasks');
+        }
+
+        // Apply filter when viewing my-tasks
+        if ($viewFilter === 'my-tasks') {
             $tasksQuery->where('assigned_to', $user->id);
         }
 
@@ -312,7 +325,7 @@ public function store(Request $request)
         $projectMembers = $project->members;
         $columns = $project->columns;
 
-        return view('kanban.board', compact('project', 'tasks', 'projectMembers', 'columns'));
+        return view('kanban.board', compact('project', 'tasks', 'projectMembers', 'columns', 'viewFilter'));
     }
 
     public function addColumn(Request $request, $id)
