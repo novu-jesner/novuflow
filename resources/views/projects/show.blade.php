@@ -255,10 +255,10 @@
                                     </div>
                                     <div class="min-w-0 flex-1">
                                         <div class="flex items-center gap-2 mb-0.5">
-                                            <span class="text-xs font-bold uppercase tracking-wider
-                                                @if($task->priority == 'High') text-red-500
-                                                @elseif($task->priority == 'Medium') text-yellow-600
-                                                @else text-green-500 @endif">{{ $task->priority }}</span>
+                                            <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border
+                                                @if($task->priority == 'High') bg-red-50 text-red-700 border-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50
+                                                @elseif($task->priority == 'Medium') bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800/50
+                                                @else bg-green-50 text-green-700 border-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50 @endif">{{ $task->priority }}</span>
                                             <span class="text-muted-foreground/60">•</span>
                                             <span class="text-xs font-medium text-muted-foreground">{{ $task->status }}</span>
                                         </div>
@@ -343,7 +343,7 @@
                                     <div class="flex items-center gap-2">
                                         <div class="font-medium text-foreground">{{ $member->name }}</div>
                                         @if($member->pivot->status === 'pending')
-                                            <span class="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 text-[10px] font-bold uppercase tracking-wider rounded-full border border-yellow-200 dark:border-yellow-800">Invited</span>
+                                            <span class="px-2 py-0.5 bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800/50 text-[10px] font-bold uppercase tracking-wider rounded-full border">Invited</span>
                                         @endif
                                     </div>
                                     <div class="text-xs text-muted-foreground">{{ $member->role }}</div>

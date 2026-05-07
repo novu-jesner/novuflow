@@ -540,11 +540,11 @@
                         <div class="flex items-start justify-between mb-2 gap-2">
                             <h4 class="font-medium text-foreground group-hover:text-primary transition-colors {{ $task->status == 'Completed' ? 'line-through' : '' }} flex-1 min-w-0 break-words pr-2">{{ $task->title }}</h4>
                             <div class="flex items-center gap-2 shrink-0">
-                                <span class="px-2 py-1 text-xs rounded-full
-                                    @if($task->status == 'Completed') bg-green-100 text-green-700
-                                    @elseif($task->priority == 'High') bg-orange-100 text-orange-700
-                                    @elseif($task->priority == 'Medium') bg-yellow-100 text-yellow-700
-                                    @else bg-muted/40 text-muted-foreground border border-border @endif">
+                                <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border
+                                    @if($task->status == 'Completed') bg-green-50 text-green-700 border-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50
+                                    @elseif($task->priority == 'High') bg-red-50 text-red-700 border-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50
+                                    @elseif($task->priority == 'Medium') bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800/50
+                                    @else bg-muted/40 text-muted-foreground border-border dark:bg-muted/20 @endif">
                                     {{ $task->status == 'Completed' ? 'Done' : $task->priority }}
                                 </span>
                                 @if($canManageTask)
