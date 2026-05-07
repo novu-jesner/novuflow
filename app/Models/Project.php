@@ -40,6 +40,30 @@ class Project extends Model
         return $this->belongsToMany(User::class, 'project_user')->withPivot('status')->withTimestamps();
     }
 
+    public function activities()
+    {
+        return $this->hasMany(Activity::class)->latest();
+    }
+
+    public function calculateProgress(): int
+    {
+        $totalTasks = $this->tasks()->count();
+        
+        if ($totalTasks === 0) {
+            return 0;
+        }
+        
+        $completedTasks = $this->tasks()->where('status', 'Completed')->count();
+        
+        return (int) round(($completedTasks / $totalTasks) * 100);
+    }
+
+    public function updateProgress(): void
+    {
+        $this->progress = $this->calculateProgress();
+        $this->save();
+    }
+
     public function tasks()
     {
         return $this->hasMany(Task::class);

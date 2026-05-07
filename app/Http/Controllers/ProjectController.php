@@ -17,7 +17,7 @@ public function index(Request $request)
     $user = auth()->user();
 
     // 1. Base query (ALWAYS include relations)
-    $query = Project::with('team', 'creator', 'members');
+    $query = Project::with('team', 'creator', 'members', 'tasks');
 
     // 2. ROLE FILTERING (DO NOT REMOVE THIS)
     if ($user->role === 'Employee') {
@@ -239,17 +239,20 @@ public function store(Request $request)
         
         // Fetch activities
         $taskActivities = \App\Models\Task::where('project_id', $project->id)
-            ->with(['creator', 'updater'])
+            ->with(['creator', 'updater', 'assignee'])
             ->latest('updated_at')
             ->take(10)
             ->get()
             ->map(function($task) {
                 $isNew = $task->created_at->eq($task->updated_at);
+                $changeType = $task->change_type ?? ($isNew ? 'created' : 'updated');
+                
                 return [
-                    'type' => $isNew ? 'task_created' : 'task_updated',
+                    'type' => $changeType,
                     'user' => $isNew ? $task->creator : ($task->updater ?? $task->creator),
                     'title' => $task->title ?? 'Untitled Task',
                     'status' => $task->status,
+                    'assignee' => $task->assignee?->name,
                     'date' => $task->updated_at,
                     'task_id' => $task->id
                 ];
@@ -650,7 +653,7 @@ public function store(Request $request)
 {
     $user = auth()->user();
 
-    $query = Project::with('team', 'creator', 'members');
+    $query = Project::with('team', 'creator', 'members', 'tasks');
 
     // ROLE FILTER (same logic as index)
     if ($user->role === 'Employee') {

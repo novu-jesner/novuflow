@@ -19,6 +19,7 @@ class Task extends Model
         'assigned_to',
         'created_by',
         'updated_by',
+        'change_type',
     ];
 
     protected $casts = [

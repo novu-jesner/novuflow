@@ -103,13 +103,26 @@
                             <div class="flex-1 min-w-0">
                                 <div class="text-sm text-foreground">
                                     <span class="font-bold text-foreground">{{ $activity['user']->name ?? 'System' }}</span>
-                                    @if($activity['type'] == 'task_created')
+                                    @if($activity['type'] == 'created')
                                         <span class="text-muted-foreground">created a new task</span>
-                                    @elseif($activity['type'] == 'task_updated')
+                                    @elseif($activity['type'] == 'status_changed')
                                         <span class="text-muted-foreground">moved task to</span>
-                                        <span class="px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-bold rounded uppercase tracking-wider">{{ $activity['status'] }}</span>
-                                    @else
+                                        <span class="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-bold rounded uppercase tracking-wider">{{ $activity['status'] }}</span>
+                                    @elseif($activity['type'] == 'assignee_changed')
+                                        <span class="text-muted-foreground">changed assignee to</span>
+                                        <span class="px-2 py-0.5 bg-accent/20 text-accent-foreground text-[10px] font-bold rounded uppercase tracking-wider">{{ $activity['assignee'] ?? 'Unassigned' }}</span>
+                                    @elseif($activity['type'] == 'title_changed')
+                                        <span class="text-muted-foreground">updated the title of</span>
+                                    @elseif($activity['type'] == 'description_changed')
+                                        <span class="text-muted-foreground">updated the description of</span>
+                                    @elseif($activity['type'] == 'priority_changed')
+                                        <span class="text-muted-foreground">changed the priority of</span>
+                                    @elseif($activity['type'] == 'due_date_changed')
+                                        <span class="text-muted-foreground">changed the due date of</span>
+                                    @elseif($activity['type'] == 'comment_added')
                                         <span class="text-muted-foreground">posted a comment on</span>
+                                    @else
+                                        <span class="text-muted-foreground">updated</span>
                                     @endif
                                     
                                     <a href="{{ route('kanban.board', $project->id) }}#task-{{ $activity['task_id'] }}" class="text-primary font-semibold hover:underline decoration-2 underline-offset-2 transition-all">
