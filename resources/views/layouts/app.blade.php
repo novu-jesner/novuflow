@@ -68,6 +68,10 @@
             @if(session('error'))
                 Alpine.store('toast').show("{{ session('error') }}", 'error');
             @endif
+
+            if (window.Alpine && Alpine.store('wellness')) {
+                Alpine.store('wellness').init();
+            }
         });
     </script>
 </head>

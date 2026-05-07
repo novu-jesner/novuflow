@@ -23,6 +23,11 @@
                 if (window.Echo) {
                     window.Echo.private('App.Models.User.{{ auth()->id() }}')
                         .notification((notification) => {
+                            const wellness = window.Alpine ? Alpine.store('wellness') : null;
+                            if (wellness?.isOnLunch && (notification.type === 'task_assigned' || /urgent|new task/i.test(notification.title))) {
+                                return;
+                            }
+
                             // Prepend the new notification to the list
                             this.notifications.unshift({
                                 id: notification.id,

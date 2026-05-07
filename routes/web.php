@@ -120,4 +120,14 @@ Route::get('/projects', [ProjectController::class, 'index'])->name('projects.ind
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.markAllRead');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+
+    Route::get('/hris-time-in', function () {
+        auth()->user()->update(['last_hris_click_at' => now(), 'is_online' => true]);
+        return redirect('https://ess.novulutions.com/employee/login');
+    })->name('hris.time-in');
+
+    Route::get('/hris-clock-out', function () {
+        auth()->user()->update(['is_online' => false]);
+        return redirect('https://ess.novulutions.com/employee/login');
+    })->name('hris.clock-out');
 });

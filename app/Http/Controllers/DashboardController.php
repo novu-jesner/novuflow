@@ -82,11 +82,16 @@ class DashboardController extends Controller
         });
 
         // Pre-calculate stats for the view
+        $teamOnlineCount = $teamMembers->where('is_online', true)->count();
+        $teamOfflineCount = $teamMembers->where('is_online', false)->count();
+        
         $stats = [
             'total_projects' => $projects->count(),
             'active_tasks' => $tasks->whereIn('status', ['To Do', 'In Progress', 'Review'])->count(),
             'completed_tasks' => $tasks->where('status', 'Completed')->count(),
             'team_members_count' => $teamMembers->count(),
+            'team_online' => $teamOnlineCount,
+            'team_offline' => $teamOfflineCount,
         ];
 
         return view('dashboard.index', compact('projects', 'tasks', 'teamMembers', 'stats'));
