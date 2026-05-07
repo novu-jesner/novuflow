@@ -197,7 +197,10 @@
                                 <div class="text-xs text-muted-foreground">Due: {{ $task->due_date ? $task->due_date->format('M d') : 'No date' }}</div>
                             </div>
                         </div>
-                        <span class="px-2 py-1 @if($task->priority === 'High') bg-red-500/15 text-red-700 dark:text-red-300 @elseif($task->priority === 'Medium') bg-yellow-500/15 text-yellow-700 dark:text-yellow-300 @else bg-green-500/15 text-green-700 dark:text-green-300 @endif border border-border text-xs rounded-full">{{ $task->priority }}</span>
+                        <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border
+                            @if($task->priority === 'High') bg-red-50 text-red-700 border-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50
+                            @elseif($task->priority === 'Medium') bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800/50
+                            @else bg-green-50 text-green-700 border-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50 @endif">{{ $task->priority }}</span>
                     </div>
                     @empty
                     <div class="text-center py-8 text-muted-foreground">

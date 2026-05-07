@@ -7,10 +7,10 @@
                 </h4>
                 <p class="text-sm text-muted-foreground mt-1 line-clamp-2">{{ $task->description }}</p>
             </div>
-            <span class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full shrink-0
-                @if($task->priority == 'High') bg-red-100 text-red-700
-                @elseif($task->priority == 'Medium') bg-yellow-100 text-yellow-700
-                @else bg-green-100 text-green-700 @endif">
+            <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full shrink-0 border
+                @if($task->priority == 'High') bg-red-50 text-red-700 border-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50
+                @elseif($task->priority == 'Medium') bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800/50
+                @else bg-green-50 text-green-700 border-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50 @endif">
                 {{ $task->priority }}
             </span>
         </div>

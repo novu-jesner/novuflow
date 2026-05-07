@@ -28,18 +28,18 @@
         <div class="p-6 border-b border-border">
             <div class="flex items-start justify-between mb-4">
                 <h2 class="text-xl font-semibold text-foreground">{{ $task->title }}</h2>
-                <span class="px-3 py-1 text-sm rounded-full
-                    @if($task->priority == 'High') bg-orange-100 text-orange-700
-                    @elseif($task->priority == 'Medium') bg-yellow-100 text-yellow-700
-                    @else bg-muted/40 text-muted-foreground border border-border @endif">{{ $task->priority }}</span>
+                <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border
+                    @if($task->priority == 'High') bg-red-50 text-red-700 border-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50
+                    @elseif($task->priority == 'Medium') bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800/50
+                    @else bg-muted/40 text-muted-foreground border-border dark:bg-muted/20 dark:text-muted-foreground dark:border-border @endif">{{ $task->priority }}</span>
             </div>
             <div class="flex items-center gap-3">
-                <span class="px-3 py-1 text-sm rounded-full
-                    @if($task->status == 'To Do') bg-muted/40 text-muted-foreground border border-border
-                    @elseif($task->status == 'In Progress') bg-blue-100 text-blue-700
-                    @elseif($task->status == 'Review') bg-yellow-100 text-yellow-700
-                    @elseif($task->status == 'Completed') bg-green-100 text-green-700
-                    @else bg-muted/40 text-muted-foreground border border-border @endif">{{ $task->status }}</span>
+                <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border
+                    @if($task->status == 'To Do') bg-muted/40 text-muted-foreground border-border dark:bg-muted/20
+                    @elseif($task->status == 'In Progress') bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800/50
+                    @elseif($task->status == 'Review') bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800/50
+                    @elseif($task->status == 'Completed') bg-green-50 text-green-700 border-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50
+                    @else bg-muted/40 text-muted-foreground border-border dark:bg-muted/20 @endif">{{ $task->status }}</span>
                 <span class="text-sm text-muted-foreground">in</span>
                 <a href="{{ route('projects.show', $task->project_id) }}" class="text-sm text-primary hover:underline">{{ $task->project->name ?? 'Unknown Project' }}</a>
             </div>
