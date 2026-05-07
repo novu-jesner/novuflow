@@ -1,10 +1,10 @@
 @extends('layouts.auth')
 
 @section('auth-content')
-<div class="w-full bg-white rounded-lg shadow-lg">
+<div class="w-full bg-card text-foreground rounded-lg shadow-lg border border-border">
     <div class="space-y-1 text-center p-6">
         <div class="flex justify-center mb-4">
-            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#3f8caf] to-[#54acc8] flex items-center justify-center">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white">
                     <rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect>
                     <rect width="3" height="3" x="7" y="7"></rect>
@@ -15,7 +15,7 @@
             </div>
         </div>
         <h1 class="text-2xl font-bold">Reset Password</h1>
-        <p class="text-gray-600">Enter your new password below</p>
+        <p class="text-muted-foreground">Enter your new password below</p>
     </div>
     <div class="p-6 pt-0">
         <form method="POST" action="{{ route('password.update') }}" class="space-y-4">
@@ -30,7 +30,7 @@
                     name="email"
                     value="{{ old('email', request('email')) }}"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent"
+                    class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors"
                 >
                 @error('email')
                     <p class="text-sm text-red-600">{{ $message }}</p>
@@ -44,7 +44,7 @@
                     type="password"
                     name="password"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent"
+                    class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors"
                 >
                 @error('password')
                     <p class="text-sm text-red-600">{{ $message }}</p>
@@ -58,16 +58,16 @@
                     type="password"
                     name="password_confirmation"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent"
+                    class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors"
                 >
             </div>
 
-            <button type="submit" class="w-full bg-gradient-to-r from-[#3f8caf] to-[#54acc8] text-white py-2 px-4 rounded-md hover:from-[#2a6a95] hover:to-[#3f8caf] transition-colors">
+            <button type="submit" class="w-full bg-gradient-to-r from-primary to-secondary text-primary-foreground py-2 px-4 rounded-md hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-ring/50 transition-opacity">
                 Reset Password
             </button>
         </form>
         <div class="mt-4 text-center">
-            <a href="{{ route('login') }}" class="text-sm text-[#3f8caf] hover:text-[#2a6a95] flex items-center justify-center gap-1">
+            <a href="{{ route('login') }}" class="text-sm text-primary hover:opacity-90 flex items-center justify-center gap-1 transition-opacity">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="m12 19-7-7 7-7"></path>
                     <path d="M19 12H5"></path>

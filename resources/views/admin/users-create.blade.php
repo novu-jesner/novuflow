@@ -11,11 +11,11 @@
     }
 }">
     <div>
-        <h1 class="text-3xl font-semibold text-gray-900">Create User</h1>
-        <p class="text-gray-600 mt-1">Add a new user to the system</p>
+        <h1 class="text-3xl font-semibold text-foreground">Create User</h1>
+        <p class="text-muted-foreground mt-1">Add a new user to the system</p>
     </div>
 
-    <div class="bg-white rounded-lg shadow p-6">
+    <div class="bg-card border border-border rounded-lg shadow p-6">
         <form method="POST" action="{{ route('admin.users.store') }}" class="space-y-4" @submit.prevent="createUser">
             @csrf
             <div class="space-y-2">
@@ -26,7 +26,7 @@
                     name="name"
                     value="{{ old('name') }}"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent"
+                    class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors"
                 >
                 @error('name')
                     <p class="text-sm text-red-600">{{ $message }}</p>
@@ -41,7 +41,7 @@
                     name="email"
                     value="{{ old('email') }}"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent"
+                    class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors"
                 >
                 @error('email')
                     <p class="text-sm text-red-600">{{ $message }}</p>
@@ -54,7 +54,7 @@
                     id="role"
                     name="role"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent"
+                    class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors"
                 >
                     <option value="Employee">Employee</option>
                     <option value="Team Leader">Team Leader</option>
@@ -73,7 +73,7 @@
                     type="password"
                     name="password"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#54acc8] focus:border-transparent"
+                    class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors"
                 >
                 @error('password')
                     <p class="text-sm text-red-600">{{ $message }}</p>
@@ -81,8 +81,8 @@
             </div>
 
             <div class="flex gap-4">
-                <a href="{{ route('admin.users') }}" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">Cancel</a>
-                <button type="submit" class="px-4 py-2 bg-gradient-to-r from-[#3f8caf] to-[#54acc8] text-white rounded-md hover:from-[#2a6a95] hover:to-[#3f8caf] transition-colors">Create User</button>
+                <a href="{{ route('admin.users') }}" class="px-4 py-2 border border-border rounded-md hover:bg-muted/30 transition-colors">Cancel</a>
+                <button type="submit" class="px-4 py-2 bg-gradient-to-r from-primary to-secondary text-primary-foreground rounded-md hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-ring/50 transition-opacity">Create User</button>
             </div>
         </form>
     </div>

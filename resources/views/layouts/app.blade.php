@@ -5,9 +5,89 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'NovuFlow')</title>
+    <script>
+        // Prevent flash of incorrect theme (runs before CSS/DOM paint).
+        (function () {
+            try {
+                const storageKey = 'nv-theme'; // 'light' | 'dark' | 'system'
+                const saved = localStorage.getItem(storageKey);
+                const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const mode = saved || 'system';
+                const isDark = mode === 'dark' || (mode === 'system' && prefersDark);
+                const root = document.documentElement;
+                if (isDark) root.classList.add('dark');
+                else root.classList.remove('dark');
+                root.style.colorScheme = isDark ? 'dark' : 'light';
+            } catch (_) {}
+        })();
+    </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script>
         document.addEventListener('alpine:init', () => {
+            Alpine.store('theme', {
+                storageKey: 'nv-theme', // 'light' | 'dark' | 'system'
+                mode: 'system',
+                systemPrefersDark: false,
+                media: null,
+
+                init() {
+                    this.mode = this.getSavedMode();
+                    this.media = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+                    this.systemPrefersDark = this.media ? this.media.matches : false;
+
+                    // Apply immediately.
+                    this.apply();
+
+                    // Live system preference updates.
+                    if (this.media) {
+                        const handler = (e) => {
+                            this.systemPrefersDark = !!e.matches;
+                            if (this.mode === 'system') this.apply();
+                        };
+                        try {
+                            this.media.addEventListener('change', handler);
+                        } catch (_) {
+                            // Safari <14
+                            this.media.addListener(handler);
+                        }
+                    }
+                },
+
+                getSavedMode() {
+                    try {
+                        const v = localStorage.getItem(this.storageKey);
+                        return (v === 'light' || v === 'dark' || v === 'system') ? v : 'system';
+                    } catch (_) {
+                        return 'system';
+                    }
+                },
+
+                get isDark() {
+                    return this.mode === 'dark' || (this.mode === 'system' && this.systemPrefersDark);
+                },
+
+                apply(withTransition = false) {
+                    const root = document.documentElement;
+                    if (withTransition) {
+                        root.classList.add('theme-transition');
+                        window.setTimeout(() => root.classList.remove('theme-transition'), 220);
+                    }
+
+                    root.classList.toggle('dark', this.isDark);
+                    root.style.colorScheme = this.isDark ? 'dark' : 'light';
+                },
+
+                setMode(mode) {
+                    this.mode = mode;
+                    try { localStorage.setItem(this.storageKey, mode); } catch (_) {}
+                    this.apply(true);
+                },
+
+                toggle() {
+                    this.setMode(this.isDark ? 'light' : 'dark');
+                },
+            });
+
             Alpine.store('toast', {
                 items: [],
                 counter: 0,
@@ -101,7 +181,7 @@
         });
     </script>
 </head>
-<body class="min-h-screen">
+<body class="min-h-screen bg-background text-foreground">
     <!-- Toast Notifications -->
     <div x-data class="fixed top-4 right-4 z-50 space-y-2 pointer-events-none" x-show="$store.toast.items.length > 0" style="display:none;">
         <template x-for="t in $store.toast.items" :key="t.id">
@@ -112,7 +192,7 @@
                  x-transition:leave-start="opacity-100"
                  x-transition:leave-end="opacity-0 translate-x-8"
                  class="pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg text-white text-sm w-72 max-w-md"
-                 :class="{ 'bg-green-600 bg-opacity-90': t.type==='success', 'bg-red-600 bg-opacity-90': t.type==='error', 'bg-blue-600 bg-opacity-90': t.type==='info' }">
+                 :class="{ 'bg-green-600/90': t.type==='success', 'bg-red-600/90': t.type==='error', 'bg-blue-600/90': t.type==='info' }">
                 <template x-if="t.type==='success'">
                     <svg class="shrink-0" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                 </template>
