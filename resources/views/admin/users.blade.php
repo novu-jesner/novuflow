@@ -85,8 +85,8 @@
                     <tbody>
                         @forelse($users as $user)
                         @php
-                            $tasksCompleted = \App\Models\Task::where('assigned_to', $user->id)->where('status', 'Completed')->count();
-                            $activeTasks = \App\Models\Task::where('assigned_to', $user->id)->whereIn('status', ['To Do', 'In Progress', 'Review'])->count();
+                            $tasksCompleted = \App\Models\Task::whereHas('assignees', function($q) use ($user) { $q->where('users.id', $user->id); })->where('status', 'Completed')->count();
+                            $activeTasks = \App\Models\Task::whereHas('assignees', function($q) use ($user) { $q->where('users.id', $user->id); })->whereIn('status', ['To Do', 'In Progress', 'Review'])->count();
                         @endphp
                         <tr class="border-b border-border hover:bg-muted/30 transition-colors" x-show="(roleFilter === 'all' || '{{ $user->role }}' === roleFilter) && ('{{ strtolower($user->name) }}'.includes(searchQuery.toLowerCase()) || '{{ strtolower($user->email) }}'.includes(searchQuery.toLowerCase()))">
                             <td class="py-3 px-4">

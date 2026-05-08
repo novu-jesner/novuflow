@@ -152,7 +152,7 @@
                         </span>
                         @if($member->last_hris_click_at)
                         <div class="text-xs text-muted-foreground whitespace-nowrap">
-                            {{ $member->last_hris_click_at->format('H:i') }}
+                            {{ $member->last_hris_click_at->format('h:i A') }}
                         </div>
                         @endif
                     </div>
@@ -259,7 +259,7 @@
             </div>
             <div class="p-6">
                 <div class="space-y-4">
-                    @forelse($tasks->where('assigned_to', auth()->id())->take(4) as $task)
+                    @forelse($tasks->where(function($t) { return $t->assignees->contains('id', auth()->id()); })->take(4) as $task)
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-3">
                             <div class="h-2 w-2 rounded-full @if($task->priority === 'High') bg-red-500 @elseif($task->priority === 'Medium') bg-orange-500 @else bg-green-500 @endif"></div>

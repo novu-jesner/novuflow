@@ -48,7 +48,6 @@ class TaskFactory extends Factory
             'priority' => fake()->randomElement(['Low', 'Medium', 'High']),
             'due_date' => fake()->dateTimeBetween('now', '+2 months'),
             'project_id' => null, // Should be provided by seeder
-            'assigned_to' => null, // Should be provided by seeder
             'created_by' => null, // Should be provided by seeder
         ];
     }

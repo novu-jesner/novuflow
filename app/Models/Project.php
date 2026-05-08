@@ -25,6 +25,12 @@ class Project extends Model
         'due_date' => 'date',
     ];
 
+    // Dynamically calculate progress based on tasks
+    public function getProgressAttribute(): int
+    {
+        return $this->calculateProgress();
+    }
+
     public function team()
     {
         return $this->belongsTo(Team::class);

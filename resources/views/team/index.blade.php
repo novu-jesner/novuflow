@@ -77,8 +77,8 @@
                 @forelse($members as $member)
                   
                 @php
-                    $tasksCompleted = \App\Models\Task::where('assigned_to', $member->id)->where('status', 'Completed')->count();
-                    $activeTasks = \App\Models\Task::where('assigned_to', $member->id)->whereIn('status', ['To Do', 'In Progress', 'Review'])->count();
+                    $tasksCompleted = \App\Models\Task::whereHas('assignees', function($q) use ($member) { $q->where('users.id', $member->id); })->where('status', 'Completed')->count();
+                    $activeTasks = \App\Models\Task::whereHas('assignees', function($q) use ($member) { $q->where('users.id', $member->id); })->whereIn('status', ['To Do', 'In Progress', 'Review'])->count();
                 @endphp
                 <div class="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/20 transition-colors" 
                      x-data="{ show: true }" 

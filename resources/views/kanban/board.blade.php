@@ -15,7 +15,7 @@
             status: '',
             priority: '',
             due_date: '',
-            assigned_to: ''
+            assigned_to: []
         },
         editingColumn: {
             id: null,
@@ -184,7 +184,7 @@
                 status: task.status,
                 priority: task.priority,
                 due_date: task.due_date ? task.due_date.substring(0, 10) : '',
-                assigned_to: task.assigned_to || ''
+                assigned_to: task.assignees ? task.assignees.map(a => a.id) : []
             };
             this.showEditModal = true;
         },
@@ -421,13 +421,15 @@
                                 <input type="date" id="due_date" name="due_date" class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors">
                             </div>
                             <div class="space-y-2">
-                                <label for="assigned_to" class="block text-sm font-medium">Assign To</label>
-                                <select id="assigned_to" name="assigned_to" class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors">
-                                    <option value="">Unassigned</option>
-                                    @foreach($project->members as $member)
-                                    <option value="{{ $member->id }}">{{ $member->name }}</option>
+                                <label class="block text-sm font-medium">Assign To</label>
+                                <div class="max-h-32 overflow-y-auto bg-surface border border-input rounded-md p-2 space-y-1">
+                                    @foreach($assignableUsers as $member)
+                                    <label class="flex items-center gap-2 text-sm hover:bg-muted/30 p-1 rounded cursor-pointer">
+                                        <input type="checkbox" name="assigned_to[]" value="{{ $member->id }}" class="rounded border-input text-primary focus:ring-ring">
+                                        <span>{{ $member->name }}</span>
+                                    </label>
                                     @endforeach
-                                </select>
+                                </div>
                             </div>
                         </div>
                     </form>
@@ -487,13 +489,18 @@
                                 <input type="date" id="edit_due_date" name="due_date" x-model="editingTask.due_date" class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors">
                             </div>
                             <div class="space-y-2">
-                                <label for="edit_assigned_to" class="block text-sm font-medium">Assign To</label>
-                                <select id="edit_assigned_to" name="assigned_to" x-model="editingTask.assigned_to" class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors">
-                                    <option value="">Unassigned</option>
-                                    @foreach($projectMembers as $member)
-                                    <option value="{{ $member->id }}">{{ $member->name }}</option>
+                                <label class="block text-sm font-medium">Assign To</label>
+                                <div class="max-h-32 overflow-y-auto bg-surface border border-input rounded-md p-2 space-y-1">
+                                    @foreach($assignableUsers as $member)
+                                    <label class="flex items-center gap-2 text-sm hover:bg-muted/30 p-1 rounded cursor-pointer">
+                                        <input type="checkbox" name="assigned_to[]" value="{{ $member->id }}"
+                                               :checked="editingTask.assigned_to.includes({{ $member->id }})"
+                                               @change="if ($event.target.checked) { editingTask.assigned_to.push({{ $member->id }}); } else { editingTask.assigned_to = editingTask.assigned_to.filter(id => id !== {{ $member->id }}); }"
+                                               class="rounded border-input text-primary focus:ring-ring">
+                                        <span>{{ $member->name }}</span>
+                                    </label>
                                     @endforeach
-                                </select>
+                                </div>
                             </div>
                         </div>
                     </form>
@@ -547,7 +554,7 @@
                                      ($task->created_by === auth()->id() && auth()->user()->role !== 'Employee');
                     // Employees can drag (move) their own assigned tasks
                     $canDragTask = $canManageTask || 
-                                   (auth()->user()->role === 'Employee' && $task->assigned_to === auth()->id());
+                                   (auth()->user()->role === 'Employee' && $task->assignees->contains('id', auth()->id()));
                 @endphp
                 <div class="relative group">
                     <a href="{{ route('tasks.show', $task->id) }}" id="task-{{ $task->id }}" class="block bg-card border border-border rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow task-card {{ $task->status == 'Completed' ? 'opacity-75' : '' }}"
@@ -578,9 +585,16 @@
                         <p class="text-sm text-muted-foreground mb-3 line-clamp-2">{{ $task->description }}</p>
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2">
-                                @if($task->assignee)
-                                <div class="w-6 h-6 rounded-full bg-blue-500 border-2 border-background flex items-center justify-center text-white text-xs">{{ substr($task->assignee->name, 0, 1) }}</div>
-                                <span class="text-xs text-muted-foreground">{{ $task->assignee->name }}</span>
+                                @if($task->assignees && $task->assignees->count() > 0)
+                                    <div class="flex -space-x-2">
+                                        @foreach($task->assignees->take(2) as $assignee)
+                                        <div class="w-6 h-6 rounded-full bg-blue-500 border-2 border-background flex items-center justify-center text-white text-xs" title="{{ $assignee->name }}">{{ substr($assignee->name, 0, 1) }}</div>
+                                        @endforeach
+                                        @if($task->assignees->count() > 2)
+                                        <div class="w-6 h-6 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs text-muted-foreground" title="{{ $task->assignees->skip(2)->pluck('name')->join(', ') }}">+{{ $task->assignees->count() - 2 }}</div>
+                                        @endif
+                                    </div>
+                                    <span class="text-xs text-muted-foreground">{{ $task->assignees->pluck('name')->join(', ') }}</span>
                                 @else
                                 <div class="w-6 h-6 rounded-full bg-muted border-2 border-card flex items-center justify-center text-white text-xs">-</div>
                                 <span class="text-xs text-muted-foreground">Unassigned</span>

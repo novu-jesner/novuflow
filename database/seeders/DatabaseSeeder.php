@@ -108,14 +108,14 @@ class DatabaseSeeder extends Seeder
 
             // Create tasks - only assign to employees
             $assignees = $teamMembers->filter(fn($user) => $user->role === 'Employee');
-            
+
             for ($j = 0; $j < 10; $j++) {
                 $assignee = $assignees->random();
-                Task::factory()->create([
+                $task = Task::factory()->create([
                     'project_id' => $project->id,
-                    'assigned_to' => $assignee->id,
                     'created_by' => $team->leader_id,
                 ]);
+                $task->assignees()->attach($assignee->id);
             }
         }
 

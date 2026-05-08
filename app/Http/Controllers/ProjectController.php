@@ -239,7 +239,7 @@ public function store(Request $request)
         
         // Fetch activities
         $taskActivities = \App\Models\Task::where('project_id', $project->id)
-            ->with(['creator', 'updater', 'assignee'])
+            ->with(['creator', 'updater', 'assignees'])
             ->latest('updated_at')
             ->take(10)
             ->get()
@@ -301,7 +301,7 @@ public function store(Request $request)
             }
         }
 
-        $tasksQuery = Task::where('project_id', $project->id)->with('assignee');
+        $tasksQuery = Task::where('project_id', $project->id)->with('assignees');
 
         // All users can toggle between all tasks and their tasks only
         $viewFilter = $request->get('view', 'all'); // default to all for creators/admins, my-tasks for others
@@ -316,16 +316,30 @@ public function store(Request $request)
             $viewFilter = $request->get('view', 'my-tasks');
         }
 
-        // Apply filter when viewing my-tasks
+        // Apply filter when viewing my-tasks - filter by many-to-many relationship
         if ($viewFilter === 'my-tasks') {
-            $tasksQuery->where('assigned_to', $user->id);
+            $tasksQuery->whereHas('assignees', function($q) use ($user) {
+                $q->where('users.id', $user->id);
+            });
         }
 
         $tasks = $tasksQuery->get();
         $projectMembers = $project->members;
+        
+        // For SuperAdmin, also include the team leader of this project as potential assignee
+        $assignableUsers = $projectMembers;
+        if ($user->role === 'SuperAdmin' || $user->role === 'Admin') {
+            if ($project->team_id) {
+                $teamLeader = \App\Models\Team::where('id', $project->team_id)->first();
+                if ($teamLeader && $teamLeader->leader) {
+                    $assignableUsers = $projectMembers->concat([$teamLeader->leader])->unique('id');
+                }
+            }
+        }
+        
         $columns = $project->columns;
 
-        return view('kanban.board', compact('project', 'tasks', 'projectMembers', 'columns', 'viewFilter'));
+        return view('kanban.board', compact('project', 'tasks', 'projectMembers', 'assignableUsers', 'columns', 'viewFilter'));
     }
 
     public function addColumn(Request $request, $id)

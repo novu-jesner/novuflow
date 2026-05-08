@@ -16,7 +16,6 @@ class Task extends Model
         'priority',
         'due_date',
         'project_id',
-        'assigned_to',
         'created_by',
         'updated_by',
         'change_type',
@@ -31,9 +30,22 @@ class Task extends Model
         return $this->belongsTo(Project::class);
     }
 
+    // Backward compatibility - returns first assignee as single model
     public function assignee()
     {
-        return $this->belongsTo(User::class, 'assigned_to');
+        return $this->belongsToMany(User::class, 'task_user')->limit(1);
+    }
+    
+    // Get first assignee as single model for backward compatibility
+    public function getAssigneeAttribute()
+    {
+        return $this->assignees->first();
+    }
+    
+    // Alias for members - all assignees
+    public function assignees()
+    {
+        return $this->belongsToMany(User::class, 'task_user');
     }
 
     public function creator()
