@@ -28,7 +28,7 @@ class TaskCommentController extends Controller
             'body' => 'nullable|string|max:2000',
             'parent_id' => 'nullable|exists:task_comments,id',
             'reply_to_id' => 'nullable|exists:task_comments,id',
-            'attachments.*' => 'nullable|file|max:10240', // 10MB max per file
+            'attachments.*' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,txt,xls,xlsx,csv|max:10240', // 10MB max per file
         ]);
 
         if (empty($validated['body']) && !$request->hasFile('attachments')) {
