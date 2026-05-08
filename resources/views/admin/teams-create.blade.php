@@ -69,6 +69,7 @@
                 get filteredUsers() {
                     return this.allUsers.filter(u => 
                         !this.selected.includes(u.id) && 
+                        !['SuperAdmin', 'Admin', 'Team Leader'].includes(u.role) &&
                         (u.name.toLowerCase().includes(this.search.toLowerCase()) || 
                          u.email.toLowerCase().includes(this.search.toLowerCase()))
                     );

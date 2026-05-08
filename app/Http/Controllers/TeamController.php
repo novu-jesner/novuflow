@@ -34,18 +34,29 @@ class TeamController extends Controller
             $projectIds = $team->projects->pluck('id');
             $activeTasks = Task::whereIn('project_id', $projectIds)->whereIn('status', ['To Do', 'In Progress', 'Review'])->count();
             $completedTasks = Task::whereIn('project_id', $projectIds)->where('status', 'Completed')->count();
-        } else {
-            // Fallback for Admins or users without teams
+        } elseif ($user->isAdmin()) {
+            // Admins see all tasks when no specific team context
             $activeTasks = Task::whereIn('status', ['To Do', 'In Progress', 'Review'])->count();
             $completedTasks = Task::where('status', 'Completed')->count();
+        } else {
+            // Team Leaders/Employees with no team see 0 stats
+            $activeTasks = 0;
+            $completedTasks = 0;
         }
         
         $totalMembers = $members->count();
+
+        if ($team && $team->leader) {
+            $totalMembers = $members->pluck('id')->push($team->leader->id)->unique()->count();
+        }
+
         $avgCompletion = ($activeTasks + $completedTasks) > 0 
             ? round(($completedTasks / ($activeTasks + $completedTasks)) * 100) 
             : 0;
 
-        $availableUsers = $team ? User::whereNotIn('id', $members->pluck('id'))->get() : collect();
+        $availableUsers = $team 
+            ? User::whereNotIn('id', $members->pluck('id')->push($team->leader?->id ?? 0)->filter()->values())->get() 
+            : collect();
 
         $teams = Team::with('leader', 'members')->latest()->get();
         
