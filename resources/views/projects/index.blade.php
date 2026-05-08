@@ -5,6 +5,32 @@
         filter: 'all', 
         searchQuery: '', 
         showModal: false,
+        allProjects: {{ $projects->map(fn($p) => [
+            'id' => $p->id,
+            'name' => $p->name,
+            'description' => $p->description,
+            'status' => $p->status,
+            'progress' => $p->progress,
+            'start_date' => $p->start_date->format('M d, Y'),
+            'due_date' => $p->due_date->format('M d, Y'),
+            'creator_name' => $p->creator->name,
+            'creator_initial' => substr($p->creator->name, 0, 1),
+            'members' => $p->members->where('pivot.status', 'accepted')->map(fn($m) => [
+                'name' => $m->name,
+                'initial' => substr($m->name, 0, 1)
+            ])->toArray(),
+            'member_count' => $p->members->where('pivot.status', 'accepted')->count() + 1,
+            'team_name' => $p->team?->name ?? 'N/A'
+        ])->toJson() }},
+        get filteredProjects() {
+            return this.allProjects.filter(p => {
+                const matchesSearch = !this.searchQuery || 
+                    p.name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+                    p.description.toLowerCase().includes(this.searchQuery.toLowerCase());
+                const matchesStatus = this.filter === 'all' || p.status === this.filter;
+                return matchesSearch && matchesStatus;
+            });
+        },
         async createProject(e) {
             await submitForm(e.target, {
                 resetForm: true,
@@ -159,21 +185,25 @@
     </div>
 
    <!-- Filters -->
-<form method="GET" action="{{ route('projects.index') }}" class="flex gap-4">
+<div class="flex gap-4">
 
     <!-- SEARCH -->
     <div class="flex-1 relative">
+        <svg class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.3-4.3"></path>
+        </svg>
         <input
             type="text"
-            name="search"
-            value="{{ request('search') }}"
+            x-model="searchQuery"
             placeholder="Search projects..."
             class="w-full pl-10 pr-4 py-2 border border-input rounded-md bg-surface text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors"
         >
     </div>
 
     <!-- STATUS -->
-    <select name="status"
+    <select 
+        x-model="filter"
         class="w-48 px-3 py-2 border border-input rounded-md bg-surface text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors">
 
         <option value="all">All Projects</option>
@@ -183,30 +213,21 @@
 
     </select>
 
-    <!-- BUTTON -->
-    <button type="submit"
-        class="px-4 py-2 bg-[#3f8caf] text-white rounded-md">
-        Filter
-    </button>
-
-</form>
+</div>
 
 
     <!-- Projects Grid -->
-    @forelse($projects as $project)
+    <template x-for="project in filteredProjects" :key="project.id">
         <div class="bg-card border border-border rounded-lg shadow hover:shadow-lg transition-shadow">
             <div class="p-6 border-b border-border">
                 <div class="flex items-start justify-between">
                     <div class="space-y-1">
-                        <h3 class="font-semibold truncate">{{ $project->name }}</h3>
-                        <p class="text-sm text-muted-foreground line-clamp-2">{{ $project->description }}</p>
+                        <h3 class="font-semibold truncate" x-text="project.name"></h3>
+                        <p class="text-sm text-muted-foreground line-clamp-2" x-text="project.description"></p>
                     </div>
-                    <span class="px-2 py-1 text-xs rounded-full text-white
-                        @if($project->status == 'Active') bg-blue-600/90
-                        @elseif($project->status == 'On Hold') bg-yellow-500/90
-                        @elseif($project->status == 'Completed') bg-green-600/90
-                        @else bg-slate-600/90 @endif">
-                        {{ $project->status }}
+                    <span class="px-2 py-1 text-xs rounded-full text-white"
+                        :class="project.status === 'Active' ? 'bg-blue-600/90' : project.status === 'On Hold' ? 'bg-yellow-500/90' : project.status === 'Completed' ? 'bg-green-600/90' : 'bg-slate-600/90'"
+                        x-text="project.status">
                     </span>
                 </div>
             </div>
@@ -215,10 +236,10 @@
                 <div class="space-y-2">
                     <div class="flex items-center justify-between text-sm">
                         <span class="text-muted-foreground">Progress</span>
-                        <span class="font-medium">{{ $project->progress }}%</span>
+                        <span class="font-medium" x-text="project.progress + '%'"></span>
                     </div>
                     <div class="w-full bg-muted/50 border border-border rounded-full h-2 overflow-hidden">
-                        <div class="bg-gradient-to-r from-primary to-secondary h-2 rounded-full" style="width: {{ $project->progress }}%"></div>
+                        <div class="bg-gradient-to-r from-primary to-secondary h-2 rounded-full" :style="'width: ' + project.progress + '%'"></div>
                     </div>
                 </div>
 
@@ -231,10 +252,10 @@
                             <line x1="8" x2="8" y1="2" y2="6"></line>
                             <line x1="3" x2="21" y1="10" y2="10"></line>
                         </svg>
-                        <span>{{ $project->start_date->format('M d, Y') }}</span>
+                        <span x-text="project.start_date"></span>
                     </div>
                     <span>→</span>
-                    <span>{{ $project->due_date->format('M d, Y') }}</span>
+                    <span x-text="project.due_date"></span>
                 </div>
 
                 <!-- Team Members -->
@@ -247,37 +268,34 @@
                             <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                         </svg>
                         <div class="flex -space-x-2">
-                            @php 
-                                $acceptedMembers = $project->members->where('pivot.status', 'accepted');
-                                $memberCount = $acceptedMembers->count() + 1; // +1 for creator
-                            @endphp
                             <!-- Creator Avatar -->
-                            <div class="w-7 h-7 rounded-full border-2 border-background flex items-center justify-center text-white text-xs font-bold bg-gradient-to-br from-primary to-secondary shadow-md ring-2 ring-border" title="{{ $project->creator->name }} (Owner)">
-                                {{ substr($project->creator->name, 0, 1) }}
+                            <div class="w-7 h-7 rounded-full border-2 border-background flex items-center justify-center text-white text-xs font-bold bg-gradient-to-br from-primary to-secondary shadow-md ring-2 ring-border" :title="project.creator_name + ' (Owner)'">
+                                <span x-text="project.creator_initial"></span>
                             </div>
-                            <!-- Accepted Members -->
-                            @foreach($acceptedMembers->take(3) as $index => $member)
-                                <div class="w-7 h-7 rounded-full border-2 border-background flex items-center justify-center text-foreground text-xs font-bold bg-muted shadow-md ring-2 ring-border" title="{{ $member->name }}">
-                                    {{ substr($member->name, 0, 1) }}
+                            <!-- Members -->
+                            <template x-for="(member, index) in project.members.slice(0, 3)" :key="member.name">
+                                <div class="w-7 h-7 rounded-full border-2 border-background flex items-center justify-center text-foreground text-xs font-bold bg-muted shadow-md ring-2 ring-border" :title="member.name">
+                                    <span x-text="member.initial"></span>
                                 </div>
-                            @endforeach
-                            @if($memberCount > 4)
-                                <div class="w-7 h-7 rounded-full bg-muted/40 border-2 border-background flex items-center justify-center text-xs text-foreground font-bold ring-2 ring-border">+{{ $memberCount - 4 }}</div>
-                            @endif
+                            </template>
+                            <template x-if="project.member_count > 4">
+                                <div class="w-7 h-7 rounded-full bg-muted/40 border-2 border-background flex items-center justify-center text-xs text-foreground font-bold ring-2 ring-border" x-text="'+' + (project.member_count - 4)"></div>
+                            </template>
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <a href="{{ route('projects.show', $project->id) }}" class="px-3 py-1 border border-border rounded-md text-sm hover:bg-muted/30 transition-colors">
+                        <a :href="'/dashboard/projects/' + project.id" class="px-3 py-1 border border-border rounded-md text-sm hover:bg-muted/30 transition-colors">
                             View Details
                         </a>
                     </div>
                 </div>
             </div>
         </div>
-    @empty
-        <div class="bg-card border border-border rounded-lg shadow p-8 text-center">
-            <p class="text-muted-foreground">No projects found. Create your first project!</p>
-        </div>
-    @endforelse
+    </template>
+
+    <!-- Empty State -->
+    <div x-show="filteredProjects.length === 0" class="bg-card border border-border rounded-lg shadow p-8 text-center">
+        <p class="text-muted-foreground">No projects found. <span x-show="searchQuery || filter !== 'all'">Try adjusting your filters.</span><span x-show="!searchQuery && filter === 'all'">Create your first project!</span></p>
+    </div>
 </div>
 @endsection
