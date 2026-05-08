@@ -56,12 +56,6 @@
                 Sign up
             </a>
         </div>
-        <div class="mt-6 p-3 bg-primary/10 border border-border rounded-lg">
-            <p class="text-xs text-muted-foreground font-medium">Demo Accounts (password: password):</p>
-            <p class="text-xs text-muted-foreground/80 mt-1">
-                admin@example.com - SuperAdmin
-            </p>
-        </div>
     </div>
 </div>
 @endsection
