@@ -8,6 +8,7 @@ use App\Http\Controllers\TaskCommentController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\SearchController;
 use Illuminate\Support\Facades\Route;
 
 // Authentication Routes
@@ -43,6 +44,8 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('
 
 // Dashboard Routes (with auth middleware)
 Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard/search', [SearchController::class, 'index'])->name('search');
+    Route::get('/api/search/suggestions', [SearchController::class, 'suggestions'])->name('search.suggestions');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/profile', [ProfileController::class, 'index'])->name('profile');
     Route::put('/dashboard/profile', [ProfileController::class, 'update'])->name('profile.update');
