@@ -145,12 +145,78 @@
         </button>
 
         <!-- Search -->
-        <div class="relative w-48 lg:w-64">
-            <svg class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"></circle>
-                <path d="m21 21-4.3-4.3"></path>
-            </svg>
-            <input type="search" placeholder="Search..." class="w-full pl-10 pr-4 py-2 bg-muted/40 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 text-sm transition-colors">
+        <div class="relative w-48 lg:w-64" x-data="{
+            query: '',
+            suggestions: [],
+            showSuggestions: false,
+            selectedIndex: -1,
+            fetchSuggestions() {
+                if (this.query.length < 2) {
+                    this.suggestions = [];
+                    this.showSuggestions = false;
+                    return;
+                }
+                fetch('/api/search/suggestions?q=' + encodeURIComponent(this.query))
+                    .then(response => response.json())
+                    .then(data => {
+                        this.suggestions = data;
+                        this.showSuggestions = data.length > 0;
+                        this.selectedIndex = -1;
+                    });
+            },
+            selectSuggestion(suggestion) {
+                this.query = suggestion;
+                this.showSuggestions = false;
+                this.$refs.searchForm.submit();
+            },
+            handleKeydown(event) {
+                if (!this.showSuggestions) return;
+                if (event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    this.selectedIndex = Math.min(this.selectedIndex + 1, this.suggestions.length - 1);
+                } else if (event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    this.selectedIndex = Math.max(this.selectedIndex - 1, -1);
+                } else if (event.key === 'Enter' && this.selectedIndex >= 0) {
+                    event.preventDefault();
+                    this.selectSuggestion(this.suggestions[this.selectedIndex]);
+                } else if (event.key === 'Escape') {
+                    this.showSuggestions = false;
+                    this.selectedIndex = -1;
+                }
+            }
+        }">
+            <form method="GET" action="{{ route('search') }}" x-ref="searchForm" class="relative">
+                <svg class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.3-4.3"></path>
+                </svg>
+                <input type="search" name="q" placeholder="Search..." 
+                       x-model="query" 
+                       @input.debounce.300ms="fetchSuggestions" 
+                       @keydown="handleKeydown" 
+                       @focus="if (suggestions.length > 0) showSuggestions = true" 
+                       @blur="setTimeout(() => showSuggestions = false, 200)"
+                       class="w-full pl-10 pr-4 py-2 bg-muted/40 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 text-sm transition-colors">
+                
+                <!-- Suggestions Dropdown -->
+                <div x-show="showSuggestions" 
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 scale-95"
+                     x-transition:enter-end="opacity-100 scale-100"
+                     class="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                    <div class="py-1">
+                        <template x-for="(suggestion, index) in suggestions" :key="suggestion">
+                            <button type="button" 
+                                    @click="selectSuggestion(suggestion)"
+                                    :class="{'bg-muted': selectedIndex === index}"
+                                    class="w-full px-4 py-2 text-left text-sm hover:bg-muted transition-colors">
+                                <span x-text="suggestion"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+            </form>
         </div>
         <!-- Notifications -->
         <div class="relative" x-data="{ open: false }">
