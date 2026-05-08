@@ -26,6 +26,12 @@
                 {{ $task->project->name }}
             </div>
             @endif
+            @if($task->project && $task->project->team)
+            <div class="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-[11px] font-medium border border-emerald-100">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20l9-5-9-5-9 5 9 5z"></path><path d="M12 12l9-5-9-5-9 5 9 5z"></path></svg>
+                {{ $task->project->team->name }}
+            </div>
+            @endif
         </div>
 
         <div class="flex items-center justify-between pt-3 border-t border-border mt-2">

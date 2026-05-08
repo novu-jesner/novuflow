@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\Team;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -90,29 +92,163 @@ class DashboardController extends Controller
         return view('dashboard.index', compact('projects', 'tasks', 'teamMembers', 'stats'));
     }
 
-    public function myTasks()
+    public function myTasks(Request $request)
     {
         $user = auth()->user();
-        $tasks = Task::whereHas('assignees', function($q) use ($user) { $q->where('users.id', $user->id); })
-            ->with('project', 'assignees', 'creator')
-            ->latest()
-            ->get();
+        $tasksQuery = Task::with(['project.team', 'assignees', 'creator', 'updater']);
 
-        // Get unique statuses and their logical order from ProjectColumns
+        if ($user->isEmployee()) {
+            $tasksQuery->whereHas('assignees', function ($q) use ($user) {
+                $q->where('users.id', $user->id);
+            });
+        } elseif ($user->isTeamLeader()) {
+            $ledTeamIds = $user->ledTeams->pluck('id')->toArray();
+            $tasksQuery->whereHas('project.team', function ($q) use ($ledTeamIds) {
+                $q->whereIn('teams.id', $ledTeamIds);
+            });
+        }
+        // For admin, no additional where clause - show all tasks
+
+        if ($request->filled('status') && $request->status !== 'all') {
+            $tasksQuery->where('status', $request->status);
+        }
+
+        if ($request->filled('priority') && $request->priority !== 'all') {
+            $tasksQuery->where('priority', $request->priority);
+        }
+
+        if ($request->filled('assignee') && $request->assignee !== 'all') {
+            if ($request->assignee === 'unassigned') {
+                $tasksQuery->whereNull('assigned_to');
+            } else {
+                $tasksQuery->whereHas('assignees', function ($q) use ($request) {
+                    $q->where('users.id', $request->assignee);
+                });
+            }
+        }
+
+        if ($request->filled('project_id') && $request->project_id !== 'all') {
+            $tasksQuery->where('project_id', $request->project_id);
+        }
+
+        if ($request->filled('team_id') && $request->team_id !== 'all' && $user->isAdmin()) {
+            $tasksQuery->whereHas('project.team', function ($q) use ($request) {
+                $q->where('teams.id', $request->team_id);
+            });
+        }
+
+        if ($request->filled('due_date_start') || $request->filled('due_date_end')) {
+            if ($request->filled('due_date_start') && $request->filled('due_date_end')) {
+                $start = Carbon::parse($request->due_date_start)->startOfDay();
+                $end = Carbon::parse($request->due_date_end)->endOfDay();
+                $tasksQuery->whereBetween('due_date', [$start, $end]);
+            } elseif ($request->filled('due_date_start')) {
+                $tasksQuery->where('due_date', '>=', Carbon::parse($request->due_date_start)->startOfDay());
+            } else {
+                $tasksQuery->where('due_date', '<=', Carbon::parse($request->due_date_end)->endOfDay());
+            }
+        }
+
+        if ($request->filled('search')) {
+            $searchTerm = $request->search;
+            $tasksQuery->where(function ($q) use ($searchTerm) {
+                $q->where('title', 'like', "%{$searchTerm}%")
+                  ->orWhere('description', 'like', "%{$searchTerm}%")
+                  ->orWhereHas('project', function ($pq) use ($searchTerm) {
+                      $pq->where('name', 'like', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('project.team', function ($tq) use ($searchTerm) {
+                      $tq->where('name', 'like', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('assignees', function ($aq) use ($searchTerm) {
+                      $aq->where('name', 'like', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('creator', function ($cq) use ($searchTerm) {
+                      $cq->where('name', 'like', "%{$searchTerm}%");
+                  });
+            });
+        }
+
+        $sortBy = $request->get('sort', 'created_at');
+        $sortDirection = $request->get('direction', 'desc');
+
+        switch ($sortBy) {
+            case 'title':
+                $tasksQuery->orderBy('title', $sortDirection);
+                break;
+            case 'priority':
+                $tasksQuery->orderByRaw("CASE priority WHEN 'High' THEN 1 WHEN 'Medium' THEN 2 WHEN 'Low' THEN 3 END " . $sortDirection);
+                break;
+            case 'due_date':
+                $tasksQuery->orderBy('due_date', $sortDirection);
+                break;
+            case 'assignee':
+                $tasksQuery->leftJoin('users', 'tasks.assigned_to', '=', 'users.id')
+                          ->orderBy('users.name', $sortDirection)
+                          ->select('tasks.*');
+                break;
+            case 'project':
+                $tasksQuery->leftJoin('projects', 'tasks.project_id', '=', 'projects.id')
+                          ->orderBy('projects.name', $sortDirection)
+                          ->select('tasks.*');
+                break;
+            case 'team':
+                $tasksQuery->leftJoin('projects', 'tasks.project_id', '=', 'projects.id')
+                          ->leftJoin('teams', 'projects.team_id', '=', 'teams.id')
+                          ->orderBy('teams.name', $sortDirection)
+                          ->select('tasks.*');
+                break;
+            default:
+                $tasksQuery->orderBy('created_at', $sortDirection);
+        }
+
+        $tasks = $tasksQuery->get();
+
         $projectIds = $tasks->pluck('project_id')->unique();
         $columnOrders = \App\Models\ProjectColumn::whereIn('project_id', $projectIds)
             ->get()
             ->groupBy('name')
             ->map(fn($cols) => $cols->min('order'));
 
-        $statuses = $tasks->pluck('status')->unique()->values()->sortBy(function($status) use ($columnOrders) {
-            // Default to a high number if order not found
+        $statuses = $tasks->pluck('status')->unique()->values()->sortBy(function ($status) use ($columnOrders) {
             return $columnOrders->get($status, 999);
         })->values();
-        
+
         $groupedTasks = $tasks->groupBy('status');
 
-        return view('employee.tasks', compact('tasks', 'statuses', 'groupedTasks'));
+        // Limit data based on user role
+        if ($user->isEmployee()) {
+            $projects = Project::whereIn('id', $projectIds)->orderBy('name')->get();
+            $teams = Team::whereHas('projects', function($q) use ($projectIds) {
+                $q->whereIn('projects.id', $projectIds);
+            })->orderBy('name')->get();
+            $assignees = User::whereHas('assignedTasks', function($q) use ($tasks) {
+                $q->whereIn('tasks.id', $tasks->pluck('id'));
+            })->orderBy('name')->get();
+        } elseif ($user->isTeamLeader()) {
+            $ledTeamIds = $user->ledTeams->pluck('id')->toArray();
+            $projects = Project::whereIn('team_id', $ledTeamIds)->orderBy('name')->get();
+            $teams = Team::whereIn('id', $ledTeamIds)->orderBy('name')->get();
+            $assignees = User::whereHas('assignedTasks', function($q) use ($tasks) {
+                $q->whereIn('tasks.id', $tasks->pluck('id'));
+            })->orderBy('name')->get();
+        } else {
+            // Admin
+            $projects = Project::orderBy('name')->get();
+            $teams = Team::orderBy('name')->get();
+            $assignees = User::orderBy('name')->get();
+        }
+
+        $stats = [
+            'total' => $tasks->count(),
+            'overdue' => $tasks->where('due_date', '<', now()->toDateString())->count(),
+            'due_today' => $tasks->where('due_date', now()->toDateString())->count(),
+            'high_priority' => $tasks->where('priority', 'High')->count(),
+            'completed' => $tasks->where('status', 'Completed')->count(),
+            'unassigned' => $tasks->whereNull('assigned_to')->count(),
+        ];
+
+        return view('employee.tasks', compact('tasks', 'statuses', 'groupedTasks', 'projects', 'teams', 'assignees', 'stats'));
     }
 
     public function adminUsers()
