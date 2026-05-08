@@ -207,7 +207,7 @@ public function inviteMember(Request $request)
         $user = User::findOrFail($id);
         foreach ($validated['task_ids'] as $taskId) {
             $task = Task::findOrFail($taskId);
-            $task->update(['assigned_to' => $user->id]);
+            $task->assignees()->sync([$user->id]);
         }
 
         return back()->with('success', 'Tasks assigned successfully!');

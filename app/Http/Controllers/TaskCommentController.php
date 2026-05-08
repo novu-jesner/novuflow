@@ -13,7 +13,7 @@ class TaskCommentController extends Controller
 {
     public function store(Request $request, $taskId)
     {
-        $task = Task::with(['assignee', 'project', 'members'])->findOrFail($taskId);
+        $task = Task::with(['assignees', 'project', 'members'])->findOrFail($taskId);
         $user = auth()->user();
 
         // Only Team Leader, Admin, SuperAdmin, or the task's assignee can comment
@@ -93,7 +93,8 @@ class TaskCommentController extends Controller
             $comment->load(['user', 'attachments', 'replies', 'replyTo.user']);
 
             // Notify involved users
-            $involvedUserIds = collect([$task->created_by, $task->assigned_to])
+            $involvedUserIds = collect([$task->created_by])
+                ->concat($task->assignees->pluck('id'))
                 ->concat($task->members->pluck('id'))
                 ->filter(fn($id) => $id && $id !== $user->id)
                 ->unique();
@@ -226,6 +227,6 @@ class TaskCommentController extends Controller
             return true;
         }
         // Employee: only if they are the assignee
-        return $task->assigned_to === $user->id;
+        return $task->assignees->contains('id', $user->id);
     }
 }

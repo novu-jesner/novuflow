@@ -14,7 +14,7 @@ class DashboardController extends Controller
         $user = auth()->user();
         
         $projectQuery = Project::with('team', 'members');
-        $taskQuery = Task::with('project', 'assignee', 'creator', 'updater');
+        $taskQuery = Task::with('project', 'assignees', 'creator', 'updater');
         $teamMemberQuery = User::whereHas('teams');
 
         // Identify accessible teams
@@ -68,15 +68,8 @@ class DashboardController extends Controller
         $teamMembers = $teamMemberQuery->latest()->get()->map(function($member) use ($projects) {
             $projectIds = $projects->pluck('id')->toArray();
             
-            $member->dashboard_completed_tasks = Task::where('assigned_to', $member->id)
-                ->whereIn('project_id', $projectIds)
-                ->where('status', 'Completed')
-                ->count();
-                
-            $member->dashboard_active_tasks = Task::where('assigned_to', $member->id)
-                ->whereIn('project_id', $projectIds)
-                ->whereIn('status', ['To Do', 'In Progress', 'Review'])
-                ->count();
+            $member->dashboard_completed_tasks = Task::whereHas('assignees', function($q) use ($member) { $q->where('users.id', $member->id); })->where('status', 'Completed')->count();
+            $member->dashboard_active_tasks = Task::whereHas('assignees', function($q) use ($member) { $q->where('users.id', $member->id); })->whereIn('status', ['To Do', 'In Progress', 'Review'])->count();
                 
             return $member;
         });
@@ -100,8 +93,8 @@ class DashboardController extends Controller
     public function myTasks()
     {
         $user = auth()->user();
-        $tasks = Task::where('assigned_to', $user->id)
-            ->with('project', 'assignee', 'creator')
+        $tasks = Task::whereHas('assignees', function($q) use ($user) { $q->where('users.id', $user->id); })
+            ->with('project', 'assignees', 'creator')
             ->latest()
             ->get();
 

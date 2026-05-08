@@ -104,7 +104,7 @@ class TaskController extends Controller
 
     public function edit($id)
     {
-        $task = Task::with(['project.members', 'assignee', 'creator', 'members'])->findOrFail($id);
+        $task = Task::with(['project.members', 'assignees', 'creator', 'members'])->findOrFail($id);
         
         if (!$this->authorizeTaskAction($task)) {
             abort(403);

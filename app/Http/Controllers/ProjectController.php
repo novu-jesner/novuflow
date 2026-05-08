@@ -239,7 +239,7 @@ public function store(Request $request)
         
         // Fetch activities
         $taskActivities = \App\Models\Task::where('project_id', $project->id)
-            ->with(['creator', 'updater', 'assignee'])
+            ->with(['creator', 'updater', 'assignees'])
             ->latest('updated_at')
             ->take(10)
             ->get()

@@ -8,27 +8,36 @@ return new class extends Migration
 {
     public function up(): void
     {
+        Schema::dropIfExists('task_user');
+
         Schema::create('task_user', function (Blueprint $table) {
             $table->id();
             $table->foreignId('task_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->timestamps();
-            
+
             $table->unique(['task_id', 'user_id']);
         });
-        
-        // Migrate existing assigned_to data
-        DB::statement('
-            INSERT INTO task_user (task_id, user_id, created_at, updated_at)
-            SELECT id, assigned_to, NOW(), NOW()
-            FROM tasks
-            WHERE assigned_to IS NOT NULL
-        ');
-        
-        // Remove old assigned_to column
-        Schema::table('tasks', function (Blueprint $table) {
-            $table->dropColumn('assigned_to');
-        });
+
+        // Migrate existing assigned_to data only if column exists
+        if (Schema::hasColumn('tasks', 'assigned_to')) {
+            DB::statement('
+                INSERT INTO task_user (task_id, user_id, created_at, updated_at)
+                SELECT id, assigned_to, NOW(), NOW()
+                FROM tasks
+                WHERE assigned_to IS NOT NULL
+            ');
+
+            // Remove foreign key constraint first
+            Schema::table('tasks', function (Blueprint $table) {
+                $table->dropForeign(['assigned_to']);
+            });
+
+            // Then remove old assigned_to column
+            Schema::table('tasks', function (Blueprint $table) {
+                $table->dropColumn('assigned_to');
+            });
+        }
     }
 
     public function down(): void

@@ -98,19 +98,15 @@
                 </div>
 
                 <div class="space-y-2">
-                    <label for="assigned_to" class="text-sm font-medium">Assigned To</label>
-                    <select
-                        id="assigned_to"
-                        name="assigned_to"
-                        class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors"
-                    >
-                        <option value="">Unassigned</option>
+                    <label class="block text-sm font-medium">Assigned To</label>
+                    <div class="max-h-32 overflow-y-auto bg-surface border border-input rounded-md p-2 space-y-1">
                         @foreach($users as $user)
-                        <option value="{{ $user->id }}" {{ old('assigned_to', $task->assigned_to) == $user->id ? 'selected' : '' }}>
-                            {{ $user->name }}
-                        </option>
+                        <label class="flex items-center gap-2 text-sm hover:bg-muted/30 p-1 rounded cursor-pointer">
+                            <input type="checkbox" name="assigned_to[]" value="{{ $user->id }}" {{ old('assigned_to', $task->assignees->pluck('id')->toArray()) && in_array($user->id, old('assigned_to', $task->assignees->pluck('id')->toArray())) ? 'checked' : '' }} class="rounded border-input text-primary focus:ring-ring">
+                            <span>{{ $user->name }}</span>
+                        </label>
                         @endforeach
-                    </select>
+                    </div>
                 </div>
             </div>
 
