@@ -183,9 +183,11 @@ class DashboardController extends Controller
                 $tasksQuery->orderBy('due_date', $sortDirection);
                 break;
             case 'assignee':
-                $tasksQuery->leftJoin('users', 'tasks.assigned_to', '=', 'users.id')
-                          ->orderBy('users.name', $sortDirection)
-                          ->select('tasks.*');
+                $tasksQuery->leftJoin('task_user', 'tasks.id', '=', 'task_user.task_id')
+                          ->leftJoin('users', 'task_user.user_id', '=', 'users.id')
+                          ->select('tasks.*', \DB::raw('MIN(users.name) as first_assignee_name'))
+                          ->groupBy('tasks.id')
+                          ->orderBy('first_assignee_name', $sortDirection);
                 break;
             case 'project':
                 $tasksQuery->leftJoin('projects', 'tasks.project_id', '=', 'projects.id')
