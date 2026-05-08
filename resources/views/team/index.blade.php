@@ -84,7 +84,10 @@
                      x-data="{ show: true }" 
                      x-show="show && ('{{ strtolower($member->name) }}'.includes(searchQuery.toLowerCase()) || '{{ strtolower($member->email) }}'.includes(searchQuery.toLowerCase()))">
                     <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary border-2 border-card flex items-center justify-center text-white font-semibold">{{ substr($member->name, 0, 1) }}</div>
+                        <div class="relative">
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary border-2 border-card flex items-center justify-center text-white font-semibold">{{ substr($member->name, 0, 1) }}</div>
+                            <div class="absolute -bottom-1 -right-1 h-3 w-3 rounded-full ring-2 ring-white {{ $member->is_online ? 'bg-green-500' : 'bg-red-500' }}" title="{{ $member->is_online ? 'Active - Timed In' : 'Inactive - Timed Out' }}"></div>
+                        </div>
                         <div>
                             <div class="font-medium">{{ $member->name }}</div>
                             <div class="text-sm text-muted-foreground flex items-center gap-1">

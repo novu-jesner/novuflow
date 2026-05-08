@@ -95,6 +95,77 @@
         </div>
     </div>
 
+    <!-- Team Status Summary -->
+    <div class="bg-card border border-border rounded-lg shadow overflow-hidden">
+        <div class="p-6 border-b border-border">
+            <h2 class="text-lg font-semibold">Team Status Summary</h2>
+            <p class="text-sm text-muted-foreground">Real-time team member activity overview</p>
+        </div>
+        <div class="p-6">
+            <!-- Status Stats -->
+            <div class="grid gap-4 md:grid-cols-3 mb-6">
+                <div class="flex items-center gap-4 p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
+                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                    <div>
+                        <div class="text-sm text-muted-foreground">Active</div>
+                        <div class="text-2xl font-bold text-green-700 dark:text-green-300">{{ $stats['team_online'] }}</div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4 p-4 bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-lg">
+                    <div class="w-3 h-3 rounded-full bg-orange-500"></div>
+                    <div>
+                        <div class="text-sm text-muted-foreground">On Lunch</div>
+                        <div class="text-2xl font-bold text-orange-700 dark:text-orange-300">0</div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4 p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
+                    <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                    <div>
+                        <div class="text-sm text-muted-foreground">Inactive</div>
+                        <div class="text-2xl font-bold text-red-700 dark:text-red-300">{{ $stats['team_offline'] }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team Members List -->
+            <div class="space-y-3">
+                <h3 class="text-sm font-medium text-muted-foreground uppercase tracking-wide">Team Members</h3>
+                @forelse($teamMembers as $member)
+                <div class="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-muted/30 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div class="relative">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary border-2 border-card flex items-center justify-center text-white font-semibold text-sm">{{ substr($member->name, 0, 1) }}</div>
+                            <div class="absolute -bottom-1 -right-1 h-3 w-3 rounded-full ring-2 ring-white {{ $member->is_online ? 'bg-green-500 animate-pulse' : 'bg-red-500' }}" title="{{ $member->is_online ? 'Active - Timed In' : 'Inactive - Timed Out' }}"></div>
+                        </div>
+                        <div>
+                            <div class="font-medium text-sm">{{ $member->name }}</div>
+                            <div class="text-xs text-muted-foreground">{{ $member->email }}</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs {{ $member->is_online ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' }}">
+                            <svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M9 12l2 2 4-4"></path>
+                            </svg>
+                            <span>{{ $member->is_online ? 'Timed In' : 'Timed Out' }}</span>
+                        </span>
+                        @if($member->last_hris_click_at)
+                        <div class="text-xs text-muted-foreground whitespace-nowrap">
+                            {{ $member->last_hris_click_at->format('H:i') }}
+                        </div>
+                        @endif
+                    </div>
+                </div>
+                @empty
+                <div class="text-center py-8 text-muted-foreground">
+                    <p>No team members found</p>
+                </div>
+                @endforelse
+            </div>
+        </div>
+    </div>
+
     <div class="grid gap-6 lg:grid-cols-2">
         <!-- Active Projects -->
         <div class="bg-card border border-border rounded-lg shadow overflow-hidden">
