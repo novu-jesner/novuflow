@@ -39,7 +39,7 @@ class TaskController extends Controller
 
         // Sync assignees
         if (!empty($validated['assigned_to'])) {
-            $task->members()->sync($validated['assigned_to']);
+            $task->assignees()->sync($validated['assigned_to']);
             
             // Notify new assignees
             foreach ($validated['assigned_to'] as $userId) {
@@ -93,6 +93,24 @@ class TaskController extends Controller
             'comments.replies.user', 
             'comments.replies.replyTo.user'
         ])->findOrFail($id);
+        
+        if (!$this->authorizeTaskAction($task)) {
+            $user = auth()->user();
+            
+            // Check if user has pending invitation
+            $hasPendingInvitation = $task->project->members()
+                ->where('users.id', $user->id)
+                ->where('project_user.status', 'pending')
+                ->exists();
+                
+            if ($hasPendingInvitation) {
+                return redirect()->route('projects.invitation', $task->project_id)
+                    ->with('error', 'You must accept the project invitation first to access this task.');
+            }
+            
+            abort(403);
+        }
+        
         $user = auth()->user();
 
         // Determine if the current user can comment
@@ -150,7 +168,7 @@ class TaskController extends Controller
 
         // Sync assignees
         if (!empty($validated['assigned_to'])) {
-            $task->members()->sync($validated['assigned_to']);
+            $task->assignees()->sync($validated['assigned_to']);
             
             // Notify new assignees (those who weren't previously assigned)
             $newAssigneeIds = array_diff($validated['assigned_to'], $oldAssigneeIds);
@@ -163,7 +181,7 @@ class TaskController extends Controller
                 }
             }
         } else {
-            $task->members()->detach();
+            $task->assignees()->detach();
         }
 
         if ($request->expectsJson()) {
@@ -186,8 +204,8 @@ class TaskController extends Controller
 
         $projectId = $task->project_id;
         
-        // Detach members
-        $task->members()->detach();
+        // Detach assignees
+        $task->assignees()->detach();
         
         // Delete task
         $task->delete();
@@ -211,10 +229,28 @@ class TaskController extends Controller
         }
 
         if ($user->role === 'Employee') {
-            return false;
+            // Check if employee is assigned to the task and is an accepted member
+            $isAssignee = $task->assignees->contains('id', $user->id);
+            if (!$isAssignee) {
+                return false;
+            }
+            
+            // Check if user is a member with accepted status
+            $isAcceptedMember = $task->project->members()
+                ->where('users.id', $user->id)
+                ->where('project_user.status', 'accepted')
+                ->exists();
+                
+            return $isAcceptedMember;
         }
 
-        return $task->created_by === $user->id || $task->assignees->contains('id', $user->id);
+        // For other roles, check if user is a member with accepted status
+        $isAcceptedMember = $task->project->members()
+            ->where('users.id', $user->id)
+            ->where('project_user.status', 'accepted')
+            ->exists();
+
+        return ($task->created_by === $user->id || $task->assignees->contains('id', $user->id)) && $isAcceptedMember;
     }
 
     private function authorizeStatusUpdate(Task $task)
@@ -229,6 +265,12 @@ class TaskController extends Controller
             return $task->assignees->contains('id', $user->id);
         }
 
-        return $task->created_by === $user->id || $task->assignees->contains('id', $user->id);
+        // Check if user is a member with accepted status
+        $isAcceptedMember = $task->project->members()
+            ->where('users.id', $user->id)
+            ->where('project_user.status', 'accepted')
+            ->exists();
+
+        return ($task->created_by === $user->id || $task->assignees->contains('id', $user->id)) && $isAcceptedMember;
     }
 }

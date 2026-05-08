@@ -325,9 +325,21 @@ public function store(Request $request)
 
         $tasks = $tasksQuery->get();
         $projectMembers = $project->members;
+        
+        // For SuperAdmin, also include the team leader of this project as potential assignee
+        $assignableUsers = $projectMembers;
+        if ($user->role === 'SuperAdmin' || $user->role === 'Admin') {
+            if ($project->team_id) {
+                $teamLeader = \App\Models\Team::where('id', $project->team_id)->first();
+                if ($teamLeader && $teamLeader->leader) {
+                    $assignableUsers = $projectMembers->concat([$teamLeader->leader])->unique('id');
+                }
+            }
+        }
+        
         $columns = $project->columns;
 
-        return view('kanban.board', compact('project', 'tasks', 'projectMembers', 'columns', 'viewFilter'));
+        return view('kanban.board', compact('project', 'tasks', 'projectMembers', 'assignableUsers', 'columns', 'viewFilter'));
     }
 
     public function addColumn(Request $request, $id)

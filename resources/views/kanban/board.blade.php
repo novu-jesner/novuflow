@@ -423,7 +423,7 @@
                             <div class="space-y-2">
                                 <label class="block text-sm font-medium">Assign To</label>
                                 <div class="max-h-32 overflow-y-auto bg-surface border border-input rounded-md p-2 space-y-1">
-                                    @foreach($project->members as $member)
+                                    @foreach($assignableUsers as $member)
                                     <label class="flex items-center gap-2 text-sm hover:bg-muted/30 p-1 rounded cursor-pointer">
                                         <input type="checkbox" name="assigned_to[]" value="{{ $member->id }}" class="rounded border-input text-primary focus:ring-ring">
                                         <span>{{ $member->name }}</span>
@@ -491,7 +491,7 @@
                             <div class="space-y-2">
                                 <label class="block text-sm font-medium">Assign To</label>
                                 <div class="max-h-32 overflow-y-auto bg-surface border border-input rounded-md p-2 space-y-1">
-                                    @foreach($projectMembers as $member)
+                                    @foreach($assignableUsers as $member)
                                     <label class="flex items-center gap-2 text-sm hover:bg-muted/30 p-1 rounded cursor-pointer">
                                         <input type="checkbox" name="assigned_to[]" value="{{ $member->id }}"
                                                :checked="editingTask.assigned_to.includes({{ $member->id }})"
