@@ -21,8 +21,6 @@ class TaskObserver
         // Determine what changed
         if ($task->isDirty('status')) {
             $changeType = 'status_changed';
-        } elseif ($task->isDirty('assigned_to')) {
-            $changeType = 'assignee_changed';
         } elseif ($task->isDirty('title')) {
             $changeType = 'title_changed';
         } elseif ($task->isDirty('description')) {
@@ -32,6 +30,7 @@ class TaskObserver
         } elseif ($task->isDirty('due_date')) {
             $changeType = 'due_date_changed';
         }
+        // Note: assignee changes are handled in controller since it's a many-to-many relationship
         
         if ($changeType) {
             $task->change_type = $changeType;

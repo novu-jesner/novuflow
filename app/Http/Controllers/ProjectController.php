@@ -301,7 +301,7 @@ public function store(Request $request)
             }
         }
 
-        $tasksQuery = Task::where('project_id', $project->id)->with('assignee');
+        $tasksQuery = Task::where('project_id', $project->id)->with('assignees');
 
         // All users can toggle between all tasks and their tasks only
         $viewFilter = $request->get('view', 'all'); // default to all for creators/admins, my-tasks for others
@@ -316,9 +316,11 @@ public function store(Request $request)
             $viewFilter = $request->get('view', 'my-tasks');
         }
 
-        // Apply filter when viewing my-tasks
+        // Apply filter when viewing my-tasks - filter by many-to-many relationship
         if ($viewFilter === 'my-tasks') {
-            $tasksQuery->where('assigned_to', $user->id);
+            $tasksQuery->whereHas('assignees', function($q) use ($user) {
+                $q->where('users.id', $user->id);
+            });
         }
 
         $tasks = $tasksQuery->get();

@@ -23,7 +23,8 @@ class TaskController extends Controller
             'priority' => 'required|in:Low,Medium,High',
             'due_date' => 'nullable|date',
             'project_id' => 'required|exists:projects,id',
-            'assigned_to' => 'nullable|exists:users,id',
+            'assigned_to' => 'nullable|array',
+            'assigned_to.*' => 'exists:users,id',
         ]);
 
         $task = Task::create([
@@ -33,19 +34,25 @@ class TaskController extends Controller
             'priority' => $validated['priority'],
             'due_date' => $validated['due_date'],
             'project_id' => $validated['project_id'],
-            'assigned_to' => $validated['assigned_to'],
             'created_by' => auth()->id(),
         ]);
 
-        // Notify assignee
-        if ($task->assigned_to && $task->assigned_to !== auth()->id()) {
-            $assignee = \App\Models\User::find($task->assigned_to);
-            if ($assignee) {
-                $assignee->notify(new \App\Notifications\TaskAssigned($task));
+        // Sync assignees
+        if (!empty($validated['assigned_to'])) {
+            $task->members()->sync($validated['assigned_to']);
+            
+            // Notify new assignees
+            foreach ($validated['assigned_to'] as $userId) {
+                if ($userId !== auth()->id()) {
+                    $assignee = \App\Models\User::find($userId);
+                    if ($assignee) {
+                        $assignee->notify(new \App\Notifications\TaskAssigned($task));
+                    }
+                }
             }
         }
 
-        $task->load('assignee');
+        $task->load('assignees');
 
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'message' => 'Task added successfully!', 'task' => $task]);
@@ -78,7 +85,7 @@ class TaskController extends Controller
     {
         $task = Task::with([
             'project', 
-            'assignee', 
+            'assignees', 
             'creator', 
             'members', 
             'comments.user', 
@@ -90,7 +97,7 @@ class TaskController extends Controller
 
         // Determine if the current user can comment
         $canComment = in_array($user->role, ['SuperAdmin', 'Admin', 'Team Leader'])
-            || $task->assigned_to === $user->id;
+            || $task->assignees->contains('id', $user->id);
 
         return view('tasks.show', compact('task', 'canComment'));
     }
@@ -126,10 +133,11 @@ class TaskController extends Controller
             'priority' => 'required|in:Low,Medium,High',
             'due_date' => 'nullable|date',
             'project_id' => 'required|exists:projects,id',
-            'assigned_to' => 'nullable|exists:users,id',
+            'assigned_to' => 'nullable|array',
+            'assigned_to.*' => 'exists:users,id',
         ]);
 
-        $oldAssigneeId = $task->assigned_to;
+        $oldAssigneeIds = $task->assignees->pluck('id')->toArray();
         $task->update([
             'title' => $validated['title'],
             'description' => $validated['description'],
@@ -137,16 +145,25 @@ class TaskController extends Controller
             'priority' => $validated['priority'],
             'due_date' => $validated['due_date'],
             'project_id' => $validated['project_id'],
-            'assigned_to' => $validated['assigned_to'],
             'updated_by' => auth()->id(),
         ]);
 
-        // Notify new assignee if changed
-        if ($task->assigned_to && $task->assigned_to !== $oldAssigneeId && $task->assigned_to !== auth()->id()) {
-            $assignee = \App\Models\User::find($task->assigned_to);
-            if ($assignee) {
-                $assignee->notify(new \App\Notifications\TaskAssigned($task));
+        // Sync assignees
+        if (!empty($validated['assigned_to'])) {
+            $task->members()->sync($validated['assigned_to']);
+            
+            // Notify new assignees (those who weren't previously assigned)
+            $newAssigneeIds = array_diff($validated['assigned_to'], $oldAssigneeIds);
+            foreach ($newAssigneeIds as $userId) {
+                if ($userId !== auth()->id()) {
+                    $assignee = \App\Models\User::find($userId);
+                    if ($assignee) {
+                        $assignee->notify(new \App\Notifications\TaskAssigned($task));
+                    }
+                }
             }
+        } else {
+            $task->members()->detach();
         }
 
         if ($request->expectsJson()) {
@@ -197,7 +214,7 @@ class TaskController extends Controller
             return false;
         }
 
-        return $task->created_by === $user->id || $task->assigned_to === $user->id;
+        return $task->created_by === $user->id || $task->assignees->contains('id', $user->id);
     }
 
     private function authorizeStatusUpdate(Task $task)
@@ -209,9 +226,9 @@ class TaskController extends Controller
 
         // Employees can only move tasks assigned to them
         if ($user->role === 'Employee') {
-            return $task->assigned_to === $user->id;
+            return $task->assignees->contains('id', $user->id);
         }
 
-        return $task->created_by === $user->id || $task->assigned_to === $user->id;
+        return $task->created_by === $user->id || $task->assignees->contains('id', $user->id);
     }
 }
