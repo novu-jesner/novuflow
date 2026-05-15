@@ -20,13 +20,13 @@ class TeamController extends Controller
             $members = $team->members;
         } elseif ($user->role === 'Team Leader') {
             $team = Team::where('leader_id', $user->id)->first();
-            $members = $team ? $team->members : collect();
+            $members = $team ? $team->members->unshift($team->leader)->unique($id) : collect();
         } elseif ($user->isAdmin()) {
             $members = User::with('teams')->latest()->get();
             // For admins without a specific team context, maybe just show everyone or no stats
         } else {
             $team = $user->teams()->first();
-            $members = $team ? $team->members : collect();
+            $members =$team ? $team->members->unshift($team->leader)->unique($id) : collect();
         }
 
         // Calculate Stats
