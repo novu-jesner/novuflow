@@ -253,7 +253,14 @@ class DashboardController extends Controller
 
     public function adminUsers()
     {
-        $users = User::latest()->get();
+        $user = auth()->user();
+        $query = User::latest();
+
+        if (!$user->isSuperAdmin()) {
+            $query->where('role', '!=', 'SuperAdmin');
+        }
+
+        $users = $query->get();
         $totalUsers = $users->count();
         $admins = $users->whereIn('role', ['SuperAdmin', 'Admin'])->count();
         $teamLeaders = $users->where('role', 'Team Leader')->count();
