@@ -416,9 +416,12 @@
                                      auth()->user()->role === 'Admin' || 
                                      auth()->user()->role === 'Team Leader' || 
                                      ($task->created_by === auth()->id() && auth()->user()->role !== 'Employee');
-                    // Employees can drag (move) their own assigned tasks
+                    $isProjectMember = $project->members()->where('users.id', auth()->id())->exists();
+                    $isAllTasksView = request('view') === 'all';
+                    // Employees can drag their own assigned tasks, or in All Tasks view if project member
                     $canDragTask = $canManageTask || 
-                                   (auth()->user()->role === 'Employee' && $task->assignees->contains('id', auth()->id()));
+                                   (auth()->user()->role === 'Employee' && $task->assignees->contains('id', auth()->id())) ||
+                                   ($isAllTasksView && $isProjectMember);
                 @endphp
                 <div class="relative group">
                     <a href="{{ route('tasks.show', $task->id) }}" id="task-{{ $task->id }}" class="block bg-card border border-border rounded-lg p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow task-card {{ $task->status == 'Completed' ? 'opacity-75' : '' }}"

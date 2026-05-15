@@ -87,6 +87,11 @@ class User extends Authenticatable
         return in_array($this->role, ['SuperAdmin', 'Admin']);
     }
 
+    public function isSuperAdmin()
+    {
+        return $this->role === 'SuperAdmin';
+    }
+
     public function isTeamLeader()
     {
         return $this->role === 'Team Leader';

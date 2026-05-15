@@ -107,8 +107,11 @@ class TaskController extends Controller
         $user = auth()->user();
 
         // Determine if the current user can comment
-        $canComment = in_array($user->role, ['SuperAdmin', 'Admin', 'Team Leader'])
-            || $task->assignees->contains('id', $user->id);
+        $canComment = in_array($user->role, ['SuperAdmin', 'Admin'])
+            || $task->project->members()
+                ->where('users.id', $user->id)
+                ->where('project_user.status', 'accepted')
+                ->exists();
 
         return view('tasks.show', compact('task', 'canComment'));
     }
@@ -120,33 +123,13 @@ class TaskController extends Controller
             return true;
         }
 
-        if ($user->role === 'Team Leader') {
-            return true;
-        }
-
-        if ($user->role === 'Employee') {
-            // Check if employee is assigned to the task and is an accepted member
-            $isAssignee = $task->assignees->contains('id', $user->id);
-            if (!$isAssignee) {
-                return false;
-            }
-            
-            // Check if user is a member with accepted status
-            $isAcceptedMember = $task->project->members()
-                ->where('users.id', $user->id)
-                ->where('project_user.status', 'accepted')
-                ->exists();
-                
-            return $isAcceptedMember;
-        }
-
-        // For other roles, check if user is a member with accepted status
+        // Check if user is a member with accepted status
         $isAcceptedMember = $task->project->members()
             ->where('users.id', $user->id)
             ->where('project_user.status', 'accepted')
             ->exists();
 
-        return ($task->created_by === $user->id || $task->assignees->contains('id', $user->id)) && $isAcceptedMember;
+        return $isAcceptedMember;
     }
 
     private function authorizeStatusUpdate(Task $task)
@@ -156,17 +139,12 @@ class TaskController extends Controller
             return true;
         }
 
-        // Employees can only move tasks assigned to them
-        if ($user->role === 'Employee') {
-            return $task->assignees->contains('id', $user->id);
-        }
-
         // Check if user is a member with accepted status
         $isAcceptedMember = $task->project->members()
             ->where('users.id', $user->id)
             ->where('project_user.status', 'accepted')
             ->exists();
 
-        return ($task->created_by === $user->id || $task->assignees->contains('id', $user->id)) && $isAcceptedMember;
+        return $isAcceptedMember;
     }
 }
