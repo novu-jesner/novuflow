@@ -78,8 +78,8 @@
             } catch (e) { console.error(e); }
         }
     }">
-    <!-- Mobile menu -->
-    <button @click="mobileMenuOpen = true" class="lg:hidden p-2 hover:bg-muted/60 rounded-md transition-colors">
+    <!-- Mobile menu burger button -->
+    <button @click="mobileMenuOpen = true" class="lg:hidden p-2 hover:bg-muted/60 rounded-md transition-colors" aria-label="Open menu">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="4" x2="20" y1="12" y2="12"></line>
             <line x1="4" x2="20" y1="6" y2="6"></line>
@@ -87,36 +87,136 @@
         </svg>
     </button>
 
-    <!-- Mobile sidebar overlay -->
-    <div x-show="mobileMenuOpen" class="fixed inset-0 z-50 lg:hidden" @click.away="mobileMenuOpen = false">
-        <div class="fixed inset-y-0 left-0 z-50 w-64 bg-surface border-r border-border">
-            <div class="flex h-16 shrink-0 items-center px-6">
-                <div class="flex items-center gap-2">
-                    <img src="{{ asset('assets/novuflow_logo.png') }}" alt="NovuFlow Logo" class="h-8 w-auto">
-                    <span class="text-xl font-semibold text-primary">NovuFlow</span>
+    <!-- Mobile sidebar: backdrop + slide-in panel -->
+    <template x-teleport="body">
+        <div x-show="mobileMenuOpen"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 z-50 lg:hidden"
+             style="display:none;">
+
+            <!-- Backdrop -->
+            <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="mobileMenuOpen = false"></div>
+
+            <!-- Slide-in panel -->
+            <div x-show="mobileMenuOpen"
+                 x-transition:enter="transition ease-out duration-250"
+                 x-transition:enter-start="-translate-x-full"
+                 x-transition:enter-end="translate-x-0"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="translate-x-0"
+                 x-transition:leave-end="-translate-x-full"
+                 class="absolute inset-y-0 left-0 w-72 max-w-[85vw] bg-surface border-r border-border shadow-2xl flex flex-col overflow-y-auto">
+
+                <!-- Header row -->
+                <div class="flex h-16 shrink-0 items-center justify-between px-6 border-b border-border">
+                    <div class="flex items-center gap-2">
+                        <img src="{{ asset('assets/novuflow_logo.png') }}" alt="NovuFlow Logo" class="h-8 w-auto">
+                        <span class="text-xl font-semibold text-primary">NovuFlow</span>
+                    </div>
+                    <button @click="mobileMenuOpen = false" class="p-1.5 rounded-md hover:bg-muted/60 transition-colors text-muted-foreground" aria-label="Close menu">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" x2="6" y1="6" y2="18"></line>
+                            <line x1="6" x2="18" y1="6" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Nav links -->
+                <nav class="flex-1 px-4 py-4 space-y-1">
+                    <a href="{{ url('/dashboard') }}" @click="mobileMenuOpen = false" class="flex items-center gap-3 px-3 py-2.5 rounded-md text-foreground/90 hover:bg-muted/50 hover:text-foreground transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground shrink-0">
+                            <rect width="7" height="9" x="3" y="3" rx="1"></rect>
+                            <rect width="7" height="5" x="14" y="3" rx="1"></rect>
+                            <rect width="7" height="9" x="14" y="12" rx="1"></rect>
+                            <rect width="7" height="5" x="3" y="16" rx="1"></rect>
+                        </svg>
+                        Dashboard
+                    </a>
+                    <a href="{{ url('/dashboard/projects') }}" @click="mobileMenuOpen = false" class="flex items-center gap-3 px-3 py-2.5 rounded-md text-foreground/90 hover:bg-muted/50 hover:text-foreground transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground shrink-0">
+                            <path d="M3 3h18v18H3z"></path>
+                            <path d="M9 3v18"></path>
+                            <path d="M3 9h18"></path>
+                        </svg>
+                        Projects
+                    </a>
+                    <a href="{{ url('/dashboard/my-tasks') }}" @click="mobileMenuOpen = false" class="flex items-center gap-3 px-3 py-2.5 rounded-md text-foreground/90 hover:bg-muted/50 hover:text-foreground transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground shrink-0">
+                            <path d="M9 11l3 3L22 4"></path>
+                            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                        </svg>
+                        My Tasks
+                    </a>
+                    <a href="{{ url('/dashboard/team') }}" @click="mobileMenuOpen = false" class="flex items-center gap-3 px-3 py-2.5 rounded-md text-foreground/90 hover:bg-muted/50 hover:text-foreground transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground shrink-0">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        Team
+                    </a>
+                    <a href="{{ route('notifications.index') }}" @click="mobileMenuOpen = false" class="flex items-center gap-3 px-3 py-2.5 rounded-md text-foreground/90 hover:bg-muted/50 hover:text-foreground transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground shrink-0">
+                            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
+                            <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
+                        </svg>
+                        Notifications
+                    </a>
+
+                    @if(auth()->check() && in_array(auth()->user()->role, ['SuperAdmin', 'Admin']))
+                    <div class="pt-4 mt-4 border-t border-border">
+                        <div class="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Admin</div>
+                        <a href="{{ url('/dashboard/admin/users') }}" @click="mobileMenuOpen = false" class="flex items-center gap-3 px-3 py-2.5 rounded-md text-foreground/90 hover:bg-muted/50 hover:text-foreground transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground shrink-0">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <line x1="19" x2="19" y1="8" y2="14"></line>
+                                <line x1="22" x2="16" y1="11" y2="11"></line>
+                            </svg>
+                            Manage Users
+                        </a>
+                        <a href="{{ url('/dashboard/admin/teams') }}" @click="mobileMenuOpen = false" class="flex items-center gap-3 px-3 py-2.5 rounded-md text-foreground/90 hover:bg-muted/50 hover:text-foreground transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground shrink-0">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                            Manage Teams
+                        </a>
+                        <a href="{{ url('/dashboard/admin/analytics') }}" @click="mobileMenuOpen = false" class="flex items-center gap-3 px-3 py-2.5 rounded-md text-foreground/90 hover:bg-muted/50 hover:text-foreground transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground shrink-0">
+                                <line x1="18" x2="18" y1="20" y2="10"></line>
+                                <line x1="12" x2="12" y1="20" y2="4"></line>
+                                <line x1="6" x2="6" y1="20" y2="14"></line>
+                            </svg>
+                            Analytics
+                        </a>
+                    </div>
+                    @endif
+                </nav>
+
+                <!-- Footer: user info -->
+                <div class="px-6 py-4 border-t border-border bg-muted/10">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-semibold text-sm shrink-0">
+                            {{ auth()->user()->name ? auth()->user()->name[0] : 'U' }}
+                        </div>
+                        <div class="min-w-0">
+                            <div class="text-sm font-medium text-foreground truncate">{{ auth()->user()->name ?? 'User' }}</div>
+                            <div class="text-xs text-muted-foreground truncate">{{ auth()->user()->role ?? 'Employee' }}</div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="px-6 py-4">
-                <a href="{{ url('/dashboard') }}" class="flex items-center gap-3 p-2 rounded-md text-foreground/90 hover:bg-muted/50 hover:text-foreground transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground">
-                        <rect width="7" height="9" x="3" y="3" rx="1"></rect>
-                        <rect width="7" height="5" x="14" y="3" rx="1"></rect>
-                        <rect width="7" height="9" x="14" y="12" rx="1"></rect>
-                        <rect width="7" height="5" x="3" y="16" rx="1"></rect>
-                    </svg>
-                    Dashboard
-                </a>
-                <a href="{{ url('/dashboard/projects') }}" class="flex items-center gap-3 p-2 rounded-md text-foreground/90 hover:bg-muted/50 hover:text-foreground transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground">
-                        <path d="M3 3h18v18H3z"></path>
-                        <path d="M9 3v18"></path>
-                        <path d="M3 9h18"></path>
-                    </svg>
-                    Projects
-                </a>
-            </div>
         </div>
-    </div>
+    </template>
 
     <!-- Spacer to push items to the right -->
     <div class="flex-1"></div>
