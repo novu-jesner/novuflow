@@ -78,9 +78,6 @@ Route::get('/projects', [ProjectController::class, 'index'])->name('projects.ind
     // Tasks
     Route::post('/dashboard/tasks', [TaskController::class, 'store'])->name('tasks.store');
     Route::get('/dashboard/tasks/{id}', [TaskController::class, 'show'])->name('tasks.show');
-    Route::get('/dashboard/tasks/{id}/edit', [TaskController::class, 'edit'])->name('tasks.edit');
-    Route::put('/dashboard/tasks/{id}', [TaskController::class, 'update'])->name('tasks.update');
-    Route::delete('/dashboard/tasks/{id}', [TaskController::class, 'destroy'])->name('tasks.destroy');
     Route::post('/dashboard/tasks/{id}/status', [TaskController::class, 'updateStatus'])->name('tasks.updateStatus');
 
     // Task Comments
@@ -123,14 +120,4 @@ Route::get('/projects', [ProjectController::class, 'index'])->name('projects.ind
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.markAllRead');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
-
-    Route::get('/hris-time-in', function () {
-        auth()->user()->update(['last_hris_click_at' => now(), 'is_online' => true]);
-        return redirect('https://ess.novulutions.com/employee/login');
-    })->name('hris.time-in');
-
-    Route::get('/hris-clock-out', function () {
-        auth()->user()->update(['is_online' => false]);
-        return redirect('https://ess.novulutions.com/employee/login');
-    })->name('hris.clock-out');
 });

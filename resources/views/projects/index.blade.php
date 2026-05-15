@@ -218,7 +218,7 @@
 
     <!-- Projects Grid -->
     <template x-for="project in filteredProjects" :key="project.id">
-        <div class="bg-card border border-border rounded-lg shadow hover:shadow-lg transition-shadow">
+        <a :href="'/dashboard/board/' + project.id" class="block bg-card border border-border rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer">
             <div class="p-6 border-b border-border">
                 <div class="flex items-start justify-between">
                     <div class="space-y-1">
@@ -283,14 +283,9 @@
                             </template>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <a :href="'/dashboard/projects/' + project.id" class="px-3 py-1 border border-border rounded-md text-sm hover:bg-muted/30 transition-colors">
-                            View Details
-                        </a>
-                    </div>
                 </div>
             </div>
-        </div>
+        </a>
     </template>
 
     <!-- Empty State -->

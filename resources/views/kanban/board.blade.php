@@ -3,20 +3,10 @@
 @section('dashboard-content')
 <div class="space-y-6" x-data="{ 
         showTaskModal: false,
-        showEditModal: false,
         showColumnModal: false,
         showEditColumnModal: false,
         showDeleteColumnModal: false,
         isSubmitting: false,
-        editingTask: {
-            id: null,
-            title: '',
-            description: '',
-            status: '',
-            priority: '',
-            due_date: '',
-            assigned_to: []
-        },
         editingColumn: {
             id: null,
             name: ''
@@ -74,24 +64,6 @@
                     resetForm: true,
                     onSuccess: (data) => {
                         this.showTaskModal = false;
-                        window.location.reload();
-                    },
-                    onError: () => {
-                        this.isSubmitting = false;
-                    }
-                });
-            } catch (err) {
-                this.isSubmitting = false;
-            }
-        },
-        async updateTask(e) {
-            if (this.isSubmitting) return;
-            this.isSubmitting = true;
-            const form = e.target;
-            try {
-                await submitForm(form, {
-                    onSuccess: (data) => {
-                        this.showEditModal = false;
                         window.location.reload();
                     },
                     onError: () => {
@@ -176,18 +148,6 @@
                 console.error(error);
             }
         },
-        openEditModal(task) {
-            this.editingTask = {
-                id: task.id,
-                title: task.title,
-                description: task.description || '',
-                status: task.status,
-                priority: task.priority,
-                due_date: task.due_date ? task.due_date.substring(0, 10) : '',
-                assigned_to: task.assignees ? task.assignees.map(a => a.id) : []
-            };
-            this.showEditModal = true;
-        },
         openEditColumnModal(column) {
             this.editingColumn = {
                 id: column.id,
@@ -220,30 +180,6 @@
                 this.reorderColumns();
             }
             this.draggedColumn = null;
-        },
-        async deleteTask(taskId) {
-            if (!confirm('Are you sure you want to delete this task?')) return;
-            
-            try {
-                const response = await fetch('/dashboard/tasks/' + taskId, {
-                    method: 'DELETE',
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-                if (response.ok) {
-                    const card = document.getElementById('task-' + taskId);
-                    if (card) card.remove();
-                    this.updateCounters();
-                    $store.toast.show('Task deleted successfully', 'success');
-                } else {
-                    $store.toast.show('Failed to delete task', 'error');
-                }
-            } catch (error) {
-                $store.toast.show('Network error', 'error');
-            }
         }
     }">
 
@@ -290,7 +226,6 @@
                 Add Column
             </button>
             @endif
-            @if(auth()->user()->role !== 'Employee')
             <button @click="showTaskModal = true" class="bg-gradient-to-r from-primary to-secondary text-primary-foreground px-4 py-2 rounded-md hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-ring/50 transition-opacity inline-flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline mr-2">
                     <path d="M5 12h14"></path>
@@ -298,7 +233,6 @@
                 </svg>
                 Add Task
             </button>
-            @endif
         </div>
     </div>
 
@@ -445,77 +379,7 @@
         </div>
     </div>
 
-    <!-- Edit Task Modal -->
-    @if(auth()->user()->role !== 'Employee')
-    <div x-show="showEditModal" x-cloak class="fixed inset-0 z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity" @click="showEditModal = false"></div>
-        <div class="flex min-h-full items-center justify-center p-4">
-            <div class="relative transform overflow-hidden rounded-lg bg-card border border-border text-left shadow-xl w-full max-w-lg">
-                <div class="px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                    <h3 class="text-xl font-semibold leading-6 text-foreground mb-4">Edit Task</h3>
-                    <form id="editTaskForm" :action="'/dashboard/tasks/' + editingTask.id" method="POST" class="space-y-4" @submit.prevent="updateTask($event)">
-                        @csrf
-                        @method('PUT')
-                        <input type="hidden" name="project_id" value="{{ $project->id }}">
-                        <div class="space-y-2">
-                            <label for="edit_title" class="block text-sm font-medium">Task Title</label>
-                            <input type="text" id="edit_title" name="title" x-model="editingTask.title" required class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors">
-                        </div>
-                        <div class="space-y-2">
-                            <label for="edit_description" class="block text-sm font-medium">Description</label>
-                            <textarea id="edit_description" name="description" x-model="editingTask.description" rows="3" class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors"></textarea>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="space-y-2">
-                                <label for="edit_status" class="block text-sm font-medium">Status</label>
-                                <select id="edit_status" name="status" x-model="editingTask.status" required class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors">
-                                    @foreach($columns as $column)
-                                    <option value="{{ $column->name }}">{{ $column->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="space-y-2">
-                                <label for="edit_priority" class="block text-sm font-medium">Priority</label>
-                                <select id="edit_priority" name="priority" x-model="editingTask.priority" required class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors">
-                                    <option value="Low">Low</option>
-                                    <option value="Medium">Medium</option>
-                                    <option value="High">High</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="space-y-2">
-                                <label for="edit_due_date" class="block text-sm font-medium">Due Date</label>
-                                <input type="date" id="edit_due_date" name="due_date" x-model="editingTask.due_date" class="w-full px-3 py-2 bg-surface border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring transition-colors">
-                            </div>
-                            <div class="space-y-2">
-                                <label class="block text-sm font-medium">Assign To</label>
-                                <div class="max-h-32 overflow-y-auto bg-surface border border-input rounded-md p-2 space-y-1">
-                                    @foreach($assignableUsers as $member)
-                                    <label class="flex items-center gap-2 text-sm hover:bg-muted/30 p-1 rounded cursor-pointer">
-                                        <input type="checkbox" name="assigned_to[]" value="{{ $member->id }}"
-                                               :checked="editingTask.assigned_to.includes({{ $member->id }})"
-                                               @change="if ($event.target.checked) { editingTask.assigned_to.push({{ $member->id }}); } else { editingTask.assigned_to = editingTask.assigned_to.filter(id => id !== {{ $member->id }}); }"
-                                               class="rounded border-input text-primary focus:ring-ring">
-                                        <span>{{ $member->name }}</span>
-                                    </label>
-                                    @endforeach
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="bg-muted/20 border-t border-border px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-2">
-                    <button type="submit" form="editTaskForm" :disabled="isSubmitting" :class="{ 'opacity-50 cursor-not-allowed': isSubmitting }" class="inline-flex justify-center rounded-md bg-gradient-to-r from-primary to-secondary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:opacity-95 transition-opacity">
-                        <span x-show="!isSubmitting">Update Task</span>
-                        <span x-show="isSubmitting">Updating...</span>
-                    </button>
-                    <button type="button" @click="showEditModal = false" class="inline-flex justify-center rounded-md bg-card px-4 py-2 text-sm font-semibold text-foreground shadow-sm border border-border hover:bg-muted/30 transition-colors">Cancel</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    @endif
+    <!-- Edit Task Modal removed -->
 
     <!-- Kanban Board -->
     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4 overflow-x-auto pb-4">
@@ -572,12 +436,7 @@
                                 </span>
                                 @if($canManageTask)
                                 <div class="flex items-center gap-1">
-                                    <button type="button" @click.prevent.stop="openEditModal({{ $task->toJson() }})" class="p-1 hover:bg-muted/30 rounded text-muted-foreground hover:text-primary transition-colors" title="Edit Task">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
-                                    </button>
-                                    <button type="button" @click.prevent.stop="deleteTask({{ $task->id }})" class="p-1 hover:bg-muted/30 rounded text-muted-foreground hover:text-red-600 transition-colors" title="Delete Task">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
-                                    </button>
+                                    <!-- Quick actions removed -->
                                 </div>
                                 @endif
                             </div>
