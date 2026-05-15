@@ -150,11 +150,6 @@
                             </svg>
                             <span>{{ $member->is_online ? 'Timed In' : 'Timed Out' }}</span>
                         </span>
-                        @if($member->last_hris_click_at)
-                        <div class="text-xs text-muted-foreground whitespace-nowrap">
-                            {{ $member->last_hris_click_at->format('h:i A') }}
-                        </div>
-                        @endif
                     </div>
                 </div>
                 @empty
