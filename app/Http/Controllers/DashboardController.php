@@ -183,9 +183,11 @@ class DashboardController extends Controller
                 $tasksQuery->orderBy('due_date', $sortDirection);
                 break;
             case 'assignee':
-                $tasksQuery->leftJoin('users', 'tasks.assigned_to', '=', 'users.id')
-                          ->orderBy('users.name', $sortDirection)
-                          ->select('tasks.*');
+                $tasksQuery->leftJoin('task_user', 'tasks.id', '=', 'task_user.task_id')
+                          ->leftJoin('users', 'task_user.user_id', '=', 'users.id')
+                          ->select('tasks.*', \DB::raw('MIN(users.name) as first_assignee_name'))
+                          ->groupBy('tasks.id')
+                          ->orderBy('first_assignee_name', $sortDirection);
                 break;
             case 'project':
                 $tasksQuery->leftJoin('projects', 'tasks.project_id', '=', 'projects.id')
@@ -253,14 +255,15 @@ class DashboardController extends Controller
 
     public function adminUsers()
     {
-        $user = auth()->user();
-        $query = User::latest();
+        $authUser = auth()->user();
+        $usersQuery = User::latest();
 
-        if (!$user->isSuperAdmin()) {
-            $query->where('role', '!=', 'SuperAdmin');
+        // If current user is Admin (not SuperAdmin), hide SuperAdmins
+        if ($authUser->role === 'Admin') {
+            $usersQuery->where('role', '!=', 'SuperAdmin');
         }
 
-        $users = $query->get();
+        $users = $usersQuery->get();
         $totalUsers = $users->count();
         $admins = $users->whereIn('role', ['SuperAdmin', 'Admin'])->count();
         $teamLeaders = $users->where('role', 'Team Leader')->count();
@@ -328,13 +331,26 @@ class DashboardController extends Controller
 
     public function editUser($id)
     {
+        $authUser = auth()->user();
         $user = User::findOrFail($id);
+
+        // Prevent Admin from editing SuperAdmin
+        if ($authUser->role === 'Admin' && $user->role === 'SuperAdmin') {
+            abort(403, 'You do not have permission to edit SuperAdmin users.');
+        }
+
         return view('admin.users-edit', compact('user'));
     }
 
     public function updateUser(Request $request, $id)
     {
+        $authUser = auth()->user();
         $user = User::findOrFail($id);
+
+        // Prevent Admin from updating SuperAdmin
+        if ($authUser->role === 'Admin' && $user->role === 'SuperAdmin') {
+            abort(403, 'You do not have permission to update SuperAdmin users.');
+        }
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -361,7 +377,13 @@ class DashboardController extends Controller
 
     public function destroyUser($id)
     {
+        $authUser = auth()->user();
         $user = User::findOrFail($id);
+
+        // Prevent Admin from deleting SuperAdmin
+        if ($authUser->role === 'Admin' && $user->role === 'SuperAdmin') {
+            abort(403, 'You do not have permission to delete SuperAdmin users.');
+        }
         
         // Prevent deleting self
         if (auth()->id() === $user->id) {

@@ -218,7 +218,7 @@
 
     <!-- Projects Grid -->
     <template x-for="project in filteredProjects" :key="project.id">
-        <div class="bg-card border border-border rounded-lg shadow hover:shadow-lg transition-shadow">
+        <div @click="location.href = `/dashboard/board/${project.id}`" style="cursor: pointer;" class="bg-card border border-border rounded-lg shadow hover:shadow-lg transition-shadow">
             <div class="p-6 border-b border-border">
                 <div class="flex items-start justify-between">
                     <div class="space-y-1">
@@ -229,6 +229,8 @@
                         :class="project.status === 'Active' ? 'bg-blue-600/90' : project.status === 'On Hold' ? 'bg-yellow-500/90' : project.status === 'Completed' ? 'bg-green-600/90' : 'bg-slate-600/90'"
                         x-text="project.status">
                     </span>
+                
+                    
                 </div>
             </div>
             <div class="p-6 space-y-4">

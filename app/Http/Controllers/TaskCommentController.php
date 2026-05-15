@@ -223,10 +223,13 @@ class TaskCommentController extends Controller
 
     private function canComment($user, Task $task)
     {
-        if (in_array($user->role, ['SuperAdmin', 'Admin', 'Team Leader'])) {
+        if (in_array($user->role, ['SuperAdmin', 'Admin'])) {
             return true;
         }
-        // Employee: only if they are the assignee
-        return $task->assignees->contains('id', $user->id);
+        // Check if user is a member with accepted status
+        return $task->project->members()
+            ->where('users.id', $user->id)
+            ->where('project_user.status', 'accepted')
+            ->exists();
     }
 }
