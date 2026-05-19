@@ -4,16 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\TaskStatusHistory;
 use App\Models\Team;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        $user = auth()->user();
+        $user = Auth::user();
         
         $projectQuery = Project::with('team', 'members');
         $taskQuery = Task::with('project', 'assignees', 'creator', 'updater');
@@ -94,7 +97,7 @@ class DashboardController extends Controller
 
     public function myTasks(Request $request)
     {
-        $user = auth()->user();
+        $user = Auth::user();
         $tasksQuery = Task::with(['project.team', 'assignees', 'creator', 'updater']);
 
         if ($user->isEmployee()) {
@@ -185,7 +188,7 @@ class DashboardController extends Controller
             case 'assignee':
                 $tasksQuery->leftJoin('task_user', 'tasks.id', '=', 'task_user.task_id')
                           ->leftJoin('users', 'task_user.user_id', '=', 'users.id')
-                          ->select('tasks.*', \DB::raw('MIN(users.name) as first_assignee_name'))
+                          ->select('tasks.*', DB::raw('MIN(users.name) as first_assignee_name'))
                           ->groupBy('tasks.id')
                           ->orderBy('first_assignee_name', $sortDirection);
                 break;
@@ -255,7 +258,7 @@ class DashboardController extends Controller
 
     public function adminUsers()
     {
-        $authUser = auth()->user();
+        $authUser = Auth::user();
         $usersQuery = User::latest();
 
         // If current user is Admin (not SuperAdmin), hide SuperAdmins
@@ -272,7 +275,7 @@ class DashboardController extends Controller
         return view('admin.users', compact('users', 'totalUsers', 'admins', 'teamLeaders', 'employees'));
     }
 
-    public function adminAnalytics()
+    public function adminAnalytics(Request $request)
     {
         $totalProjects = Project::count();
         $completedTasks = Task::where('status', 'Completed')->count();
@@ -298,7 +301,113 @@ class DashboardController extends Controller
                 return $team;
             });
 
-        return view('admin.analytics', compact('totalProjects', 'completedTasks', 'activeTasks', 'teamMembers', 'teams'));
+        $projects = Project::orderBy('name')->get();
+        $selectedProjectId = $request->input('project_id', $projects->first()?->id);
+        $selectedProject = $projects->firstWhere('id', $selectedProjectId);
+
+        $heatmap = [];
+        $timeline = [];
+
+        if ($selectedProject) {
+            $histories = TaskStatusHistory::whereHas('task', function ($query) use ($selectedProject) {
+                    $query->where('project_id', $selectedProject->id);
+                })
+                ->with('changedBy')
+                ->orderBy('created_at')
+                ->get();
+
+            $durations = $histories
+                ->groupBy('new_status')
+                ->map(fn ($group) => $group->sum(fn ($history) => $history->duration_in_seconds ?? 0))
+                ->toArray();
+
+            $columns = ['To Do', 'In Progress', 'Ready for Review', 'Completed'];
+            $heatmap = collect($columns)
+                ->map(fn ($column) => [
+                    'column' => $column,
+                    'duration_seconds' => $durations[$column] ?? 0,
+                    'duration_label' => $this->formatDuration($durations[$column] ?? 0),
+                    'intensity' => $this->heatmapIntensity($durations[$column] ?? 0),
+                    'color' => $this->heatmapColor($durations[$column] ?? 0),
+                ])
+                ->toArray();
+
+            $timeline = $histories
+                ->map(fn ($history) => [
+                    'task_id' => $history->task_id,
+                    'old_status' => $history->old_status,
+                    'new_status' => $history->new_status,
+                    'changed_at' => $history->created_at->format('Y-m-d H:i:s'),
+                    'changed_by' => $history->changedBy?->name,
+                ])
+                ->groupBy(fn ($entry) => substr($entry['changed_at'], 0, 13) . ':00')
+                ->map(fn ($entries, $bucket) => [
+                    'bucket' => $bucket,
+                    'events' => $entries,
+                    'counts' => collect($entries)->countBy('new_status')->toArray(),
+                ])
+                ->values()
+                ->toArray();
+        }
+
+        return view('admin.analytics', compact('totalProjects', 'completedTasks', 'activeTasks', 'teamMembers', 'teams', 'projects', 'selectedProjectId', 'heatmap', 'timeline'));
+    }
+
+    protected function heatmapIntensity(int $seconds): string
+    {
+        if ($seconds >= 43200) {
+            return 'critical';
+        }
+
+        if ($seconds >= 14400) {
+            return 'warning';
+        }
+
+        return 'safe';
+    }
+
+    protected function heatmapColor(int $seconds): string
+    {
+        return match ($this->heatmapIntensity($seconds)) {
+            'critical' => 'bg-red-500/20 ring-red-500/40 text-red-700',
+            'warning' => 'bg-orange-400/20 ring-orange-400/35 text-orange-700',
+            default => 'bg-emerald-400/15 ring-emerald-500/20 text-emerald-700',
+        };
+    }
+
+    protected function formatDuration(int $seconds): string
+    {
+        if ($seconds < 60) {
+            return $seconds === 1 ? '1 second' : "{$seconds} seconds";
+        }
+
+        if ($seconds < 3600) {
+            $minutes = (int) round($seconds / 60);
+            return $minutes === 1 ? '1 minute' : "{$minutes} minutes";
+        }
+
+        if ($seconds < 86400) {
+            $hours = (int) round($seconds / 3600);
+            return $hours === 1 ? '1 hour' : "{$hours} hours";
+        }
+
+        if ($seconds < 604800) {
+            $days = (int) round($seconds / 86400);
+            return $days === 1 ? '1 day' : "{$days} days";
+        }
+
+        if ($seconds < 2629746) {
+            $weeks = (int) round($seconds / 604800);
+            return $weeks === 1 ? '1 week' : "{$weeks} weeks";
+        }
+
+        if ($seconds < 31556952) {
+            $months = (int) round($seconds / 2629746);
+            return $months === 1 ? '1 month' : "{$months} months";
+        }
+
+        $years = (int) round($seconds / 31556952);
+        return $years === 1 ? '1 year' : "{$years} years";
     }
 
     public function createUser()
@@ -331,7 +440,7 @@ class DashboardController extends Controller
 
     public function editUser($id)
     {
-        $authUser = auth()->user();
+        $authUser = Auth::user();
         $user = User::findOrFail($id);
 
         // Prevent Admin from editing SuperAdmin
@@ -344,7 +453,7 @@ class DashboardController extends Controller
 
     public function updateUser(Request $request, $id)
     {
-        $authUser = auth()->user();
+        $authUser = Auth::user();
         $user = User::findOrFail($id);
 
         // Prevent Admin from updating SuperAdmin
@@ -377,7 +486,7 @@ class DashboardController extends Controller
 
     public function destroyUser($id)
     {
-        $authUser = auth()->user();
+        $authUser = Auth::user();
         $user = User::findOrFail($id);
 
         // Prevent Admin from deleting SuperAdmin
@@ -386,7 +495,7 @@ class DashboardController extends Controller
         }
         
         // Prevent deleting self
-        if (auth()->id() === $user->id) {
+        if (Auth::id() === $user->id) {
             if (request()->expectsJson()) {
                 return response()->json(['success' => false, 'message' => 'You cannot delete your own account.'], 403);
             }
