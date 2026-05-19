@@ -9,6 +9,7 @@ use App\Http\Controllers\TeamController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\KanbanAnalyticsController;
 use Illuminate\Support\Facades\Route;
 
 // Authentication Routes
@@ -114,6 +115,7 @@ Route::get('/projects', [ProjectController::class, 'index'])->name('projects.ind
         Route::delete('/teams/{id}', [TeamController::class, 'destroy'])->name('admin.teams.destroy');
         
         Route::get('/analytics', [DashboardController::class, 'adminAnalytics'])->name('admin.analytics');
+        Route::get('/projects/{project}/kanban-analytics', [KanbanAnalyticsController::class, 'projectAnalytics'])->name('admin.kanban.analytics');
     });
 
     Route::get('/notifications/{id}', [NotificationController::class, 'show'])->name('notifications.show');

@@ -67,4 +67,9 @@ class Task extends Model
     {
         return $this->hasMany(\App\Models\TaskComment::class)->with('user')->latest();
     }
+
+    public function statusHistories()
+    {
+        return $this->hasMany(TaskStatusHistory::class)->orderBy('created_at');
+    }
 }
