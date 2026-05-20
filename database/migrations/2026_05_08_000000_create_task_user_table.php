@@ -21,12 +21,18 @@ return new class extends Migration
 
         // Migrate existing assigned_to data only if column exists
         if (Schema::hasColumn('tasks', 'assigned_to')) {
-            DB::statement('
-                INSERT INTO task_user (task_id, user_id, created_at, updated_at)
-                SELECT id, assigned_to, NOW(), NOW()
-                FROM tasks
-                WHERE assigned_to IS NOT NULL
-            ');
+            $tasks = \Illuminate\Support\Facades\DB::table('tasks')
+                ->whereNotNull('assigned_to')
+                ->select('id', 'assigned_to')
+                ->get();
+            foreach ($tasks as $task) {
+                \Illuminate\Support\Facades\DB::table('task_user')->insert([
+                    'task_id' => $task->id,
+                    'user_id' => $task->assigned_to,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
 
             // Remove foreign key constraint first
             Schema::table('tasks', function (Blueprint $table) {

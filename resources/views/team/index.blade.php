@@ -4,6 +4,7 @@
 <div class="space-y-6" x-data="{ 
     searchQuery: '', 
     showInviteModal: false,
+    showFilterModal: false,
     async inviteMember(e) {
         await submitForm(e.target, {
             onSuccess: (data) => {
@@ -73,6 +74,77 @@
             <p class="text-sm text-muted-foreground">All members in your organization</p>
         </div>
         <div class="p-6">
+            @if(auth()->user()->isAdmin())
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <div>
+                    <p class="text-sm font-semibold text-foreground">Team Members</p>
+                    <p class="text-sm text-muted-foreground">Filter members by team or role.</p>
+                </div>
+                <button type="button" @click="showFilterModal = true" class="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-sm font-medium text-foreground shadow-sm transition hover:bg-muted/50">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 4h18"></path>
+                        <path d="M6 12h12"></path>
+                        <path d="M10 20h4"></path>
+                    </svg>
+                    Filters
+                </button>
+            </div>
+            @if((request('team') && request('team') !== 'all') || (request('role') && request('role') !== 'all'))
+            <div class="mb-4 flex flex-wrap gap-2">
+                @if(request('team') && request('team') !== 'all')
+                    @php $activeTeam = $teams->firstWhere('id', request('team')); @endphp
+                    <span class="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary">Team: {{ $activeTeam?->name ?? 'Unknown' }}</span>
+                @endif
+                @if(request('role') && request('role') !== 'all')
+                    <span class="inline-flex items-center gap-2 rounded-full bg-secondary/10 px-3 py-1 text-sm text-secondary">Role: {{ request('role') }}</span>
+                @endif
+                <a href="{{ route('team.index') }}" class="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1 text-sm text-foreground">Clear</a>
+            </div>
+            @endif
+
+            <div x-show="showFilterModal" x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6" style="display: none;">
+                <div @click.away="showFilterModal = false" class="w-full max-w-lg rounded-3xl bg-card border border-border p-6 shadow-2xl">
+                    <div class="flex items-center justify-between gap-4 pb-4 border-b border-border">
+                        <div>
+                            <h3 class="text-lg font-semibold text-foreground">Filter members</h3>
+                            <p class="text-sm text-muted-foreground">Choose team or role to narrow the list.</p>
+                        </div>
+                        <button type="button" @click="showFilterModal = false" class="rounded-full p-2 text-muted-foreground hover:bg-muted/50 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <form method="GET" action="{{ route('team.index') }}" class="mt-5 space-y-4">
+                        <label class="block text-sm text-muted-foreground">
+                            <span class="block text-xs font-medium text-muted-foreground">Team</span>
+                            <select name="team" class="mt-2 block w-full rounded-2xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+                                <option value="all">All Teams</option>
+                                @foreach($teams as $t)
+                                    <option value="{{ $t->id }}" {{ request('team') == $t->id ? 'selected' : '' }}>{{ $t->name }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <label class="block text-sm text-muted-foreground">
+                            <span class="block text-xs font-medium text-muted-foreground">Role</span>
+                            <select name="role" class="mt-2 block w-full rounded-2xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+                                <option value="all">All Roles</option>
+                                <option value="Employee" {{ request('role') == 'Employee' ? 'selected' : '' }}>Employee</option>
+                                <option value="Team Leader" {{ request('role') == 'Team Leader' ? 'selected' : '' }}>Team Leader</option>
+                                <option value="Admin" {{ request('role') == 'Admin' ? 'selected' : '' }}>Admin</option>
+                                <option value="SuperAdmin" {{ request('role') == 'SuperAdmin' ? 'selected' : '' }}>SuperAdmin</option>
+                            </select>
+                        </label>
+                        <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                            <button type="button" @click="showFilterModal = false" class="rounded-2xl border border-border bg-background px-4 py-2 text-sm text-foreground transition hover:bg-muted/50">Cancel</button>
+                            <button type="submit" class="rounded-2xl bg-gradient-to-r from-primary to-secondary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-95">Apply filters</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            @endif
+
             <div class="space-y-3">
                 @forelse($members as $member)
                   
