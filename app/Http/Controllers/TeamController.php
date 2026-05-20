@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 class TeamController extends Controller
 {
 
-    public function index($id = null)
+    public function index(\Illuminate\Http\Request $request, $id = null)
     {
         $user = auth()->user();
         $team = null;
@@ -22,8 +22,22 @@ class TeamController extends Controller
             $team = Team::where('leader_id', $user->id)->first();
             $members = $team ? $team->members->unshift($team->leader)->unique($id) : collect();
         } elseif ($user->isAdmin()) {
-            $members = User::with('teams')->latest()->get();
-            // For admins without a specific team context, maybe just show everyone or no stats
+            // Admins can filter/sort members by team and role via query params
+            $membersQuery = User::with('teams');
+
+            if ($request->filled('role') && $request->role !== 'all') {
+                $membersQuery->where('role', $request->role);
+            }
+
+            if ($request->filled('team') && $request->team !== 'all') {
+                $teamId = (int) $request->team;
+                $membersQuery->whereHas('teams', function($q) use ($teamId) {
+                    $q->where('teams.id', $teamId);
+                });
+            }
+
+            // Default ordering: newest first
+            $members = $membersQuery->latest()->get();
         } else {
             $team = $user->teams()->first();
             $members =$team ? $team->members->unshift($team->leader)->unique($id) : collect();

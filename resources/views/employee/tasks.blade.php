@@ -131,11 +131,11 @@
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label for="modal_due_date_start" class="block text-sm font-medium text-foreground mb-2">Due Date Start</label>
+                            <label for="modal_due_date_start" class="block text-sm font-medium text-foreground mb-2">Date Start</label>
                             <input id="modal_due_date_start" name="due_date_start" type="date" value="{{ request('due_date_start') }}" class="w-full rounded-md border border-input bg-background px-3 py-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20">
                         </div>
                         <div>
-                            <label for="modal_due_date_end" class="block text-sm font-medium text-foreground mb-2">Due Date End</label>
+                            <label for="modal_due_date_end" class="block text-sm font-medium text-foreground mb-2">Date End</label>
                             <input id="modal_due_date_end" name="due_date_end" type="date" value="{{ request('due_date_end') }}" class="w-full rounded-md border border-input bg-background px-3 py-3 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20">
                         </div>
                     </div>
