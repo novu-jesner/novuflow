@@ -10,6 +10,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\KanbanAnalyticsController;
+use App\Http\Controllers\CalendarController;
 use Illuminate\Support\Facades\Route;
 
 // Authentication Routes
@@ -97,6 +98,11 @@ Route::get('/projects', [ProjectController::class, 'index'])->name('projects.ind
     ->name('team.member.remove');
     // Employee Tasks
     Route::get('/dashboard/my-tasks', [DashboardController::class, 'myTasks'])->name('employee.tasks');
+
+    // Calendar
+    Route::get('/dashboard/calendar', [CalendarController::class, 'index'])->name('calendar.index');
+    Route::get('/dashboard/calendar/tasks', [CalendarController::class, 'getTasks'])->name('calendar.tasks');
+    Route::put('/dashboard/tasks/{task}/due-date', [CalendarController::class, 'updateDueDate'])->name('calendar.tasks.update-date');
 
     // Admin Routes
     Route::middleware(['role:SuperAdmin,Admin'])->prefix('dashboard/admin')->group(function () {

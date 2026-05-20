@@ -14,7 +14,9 @@ class TaskObserver
         $task->change_type = 'created';
         $task->saveQuietly();
         $this->recordStatusHistory($task, null, $task->status);
-        $task->project->updateProgress();
+        if ($task->project) {
+            $task->project->updateProgress();
+        }
     }
 
     public function updated(Task $task): void
@@ -42,13 +44,17 @@ class TaskObserver
         if ($task->wasChanged('status')) {
             $this->finalizePreviousStatus($task);
             $this->recordStatusHistory($task, $task->getOriginal('status'), $task->status);
-            $task->project->updateProgress();
+            if ($task->project) {
+                $task->project->updateProgress();
+            }
         }
     }
 
     public function deleted(Task $task): void
     {
-        $task->project->updateProgress();
+        if ($task->project) {
+            $task->project->updateProgress();
+        }
     }
 
     protected function recordStatusHistory(Task $task, ?string $oldStatus, string $newStatus): void
