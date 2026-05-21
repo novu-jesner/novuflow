@@ -307,59 +307,174 @@ class DashboardController extends Controller
 
         $heatmap = [];
         $timeline = [];
+        $playbackTasks = [];
+        $selectedProjectColumns = [];
 
         if ($selectedProject) {
-            $histories = TaskStatusHistory::whereHas('task', function ($query) use ($selectedProject) {
-                    $query->where('project_id', $selectedProject->id);
-                })
-                ->with('changedBy')
-                ->orderBy('created_at')
+            $selectedProjectColumns = $selectedProject->columns()->orderBy('order')->get();
+            $columnNames = $selectedProjectColumns->pluck('name')->toArray();
+            
+            $tasks = $selectedProject->tasks()
+                ->with(['assignees', 'creator', 'statusHistories.changedBy'])
                 ->get();
 
-            $durations = $histories
-                ->groupBy('new_status')
-                ->map(fn ($group) => $group->sum(fn ($history) => $history->duration_in_seconds ?? 0))
-                ->toArray();
+            // Initialize durations, transition counts, stalled tasks lists
+            $durations = [];
+            $transitionCounts = [];
+            $stalledTasksByColumn = [];
+            foreach ($columnNames as $colName) {
+                $durations[$colName] = 0;
+                $transitionCounts[$colName] = 0;
+                $stalledTasksByColumn[$colName] = [];
+            }
 
-            $columns = ['To Do', 'In Progress', 'Ready for Review', 'Completed'];
-            $heatmap = collect($columns)
-                ->map(fn ($column) => [
-                    'column' => $column,
-                    'duration_seconds' => $durations[$column] ?? 0,
-                    'duration_label' => $this->formatDuration($durations[$column] ?? 0),
-                    'intensity' => $this->heatmapIntensity($durations[$column] ?? 0),
-                    'color' => $this->heatmapColor($durations[$column] ?? 0),
-                ])
-                ->toArray();
+            foreach ($tasks as $task) {
+                // Calculate durations from histories
+                foreach ($task->statusHistories as $history) {
+                    $colName = $history->new_status;
+                    if (!in_array($colName, $columnNames)) {
+                        continue;
+                    }
+                    
+                    $transitionCounts[$colName]++;
+                    
+                    $dur = $history->duration_in_seconds;
+                    if ($dur === null) {
+                        // It is the current active status (unfinished duration)
+                        $dur = Carbon::parse($history->created_at)->diffInSeconds(now());
+                    }
+                    $durations[$colName] += $dur;
+                }
 
-            $timeline = $histories
-                ->map(fn ($history) => [
-                    'task_id' => $history->task_id,
-                    'old_status' => $history->old_status,
-                    'new_status' => $history->new_status,
-                    'changed_at' => $history->created_at->format('Y-m-d H:i:s'),
-                    'changed_by' => $history->changedBy?->name,
-                ])
-                ->groupBy(fn ($entry) => substr($entry['changed_at'], 0, 13) . ':00')
-                ->map(fn ($entries, $bucket) => [
-                    'bucket' => $bucket,
-                    'events' => $entries,
-                    'counts' => collect($entries)->countBy('new_status')->toArray(),
-                ])
-                ->values()
+                // Check if currently stalled in its active status
+                $activeStatus = $task->status;
+                if (in_array($activeStatus, $columnNames) && $activeStatus !== 'Completed' && $activeStatus !== end($columnNames)) {
+                    $lastHistory = $task->statusHistories->last();
+                    if ($lastHistory) {
+                        $stayedSeconds = Carbon::parse($lastHistory->created_at)->diffInSeconds(now());
+                        if ($stayedSeconds > 172800) { // > 48 hours
+                            $stalledTasksByColumn[$activeStatus][] = [
+                                'id' => $task->id,
+                                'title' => $task->title,
+                                'priority' => $task->priority,
+                                'duration_label' => $this->formatDuration($stayedSeconds),
+                                'since' => Carbon::parse($lastHistory->created_at)->format('M d, Y'),
+                                'assignees' => $task->assignees->pluck('name')->toArray(),
+                            ];
+                        }
+                    }
+                }
+
+                // Playback Task Data
+                $firstHistory = $task->statusHistories->first();
+                $initialStatus = $firstHistory ? $firstHistory->new_status : $task->status;
+                
+                $playbackTasks[] = [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    'priority' => $task->priority,
+                    'created_at' => $task->created_at->toISOString(),
+                    'initial_status' => $initialStatus,
+                    'assignees' => $task->assignees->map(function($u) {
+                        $parts = explode(' ', $u->name);
+                        $initials = '';
+                        foreach ($parts as $p) {
+                            $initials .= strtoupper(substr($p, 0, 1));
+                        }
+                        return [
+                            'name' => $u->name,
+                            'initials' => substr($initials, 0, 2),
+                        ];
+                    })->toArray(),
+                    'history' => $task->statusHistories->map(fn($h) => [
+                        'old_status' => $h->old_status,
+                        'new_status' => $h->new_status,
+                        'changed_at' => $h->created_at->format('M d, Y g:i A'),
+                        'changed_by' => $h->changedBy?->name ?? 'System',
+                        'duration_label' => $h->duration_in_seconds ? $this->formatDuration($h->duration_in_seconds) : null,
+                    ])->toArray(),
+                ];
+
+                // Playback Event: Task Created
+                $timeline[] = [
+                    'timestamp' => $task->created_at->toISOString(),
+                    'formatted_time' => $task->created_at->format('M d, Y g:i A'),
+                    'task_id' => $task->id,
+                    'task_title' => $task->title,
+                    'type' => 'created',
+                    'user' => $task->creator?->name ?? 'System',
+                    'description' => "Task '{$task->title}' was created by " . ($task->creator?->name ?? 'System') . " in '{$initialStatus}'",
+                ];
+
+                // Playback Event: Task Moved
+                foreach ($task->statusHistories as $history) {
+                    if ($history->old_status === null) {
+                        continue; // handled by created event
+                    }
+                    $timeline[] = [
+                        'timestamp' => $history->created_at->toISOString(),
+                        'formatted_time' => $history->created_at->format('M d, Y g:i A'),
+                        'task_id' => $task->id,
+                        'task_title' => $task->title,
+                        'type' => 'moved',
+                        'user' => $history->changedBy?->name ?? 'System',
+                        'description' => "'{$task->title}' was moved from '{$history->old_status}' to '{$history->new_status}' by " . ($history->changedBy?->name ?? 'System'),
+                    ];
+                }
+            }
+
+            // Sort timeline events chronologically
+            usort($timeline, function($a, $b) {
+                return strcmp($a['timestamp'], $b['timestamp']);
+            });
+
+            // Map columns for the heatmap
+            $heatmap = collect($columnNames)
+                ->map(function ($colName) use ($durations, $transitionCounts, $stalledTasksByColumn, $tasks) {
+                    $totalSec = $durations[$colName];
+                    $transitions = $transitionCounts[$colName];
+                    $avgSec = $transitions > 0 ? (int) round($totalSec / $transitions) : 0;
+                    
+                    // Count active tasks currently in this status
+                    $activeCount = $tasks->where('status', $colName)->count();
+
+                    return [
+                        'column' => $colName,
+                        'duration_seconds' => $totalSec,
+                        'duration_label' => $this->formatDuration($totalSec),
+                        'avg_duration_label' => $this->formatDuration($avgSec),
+                        'active_count' => $activeCount,
+                        'stalled_count' => count($stalledTasksByColumn[$colName]),
+                        'stalled_tasks' => $stalledTasksByColumn[$colName],
+                        'intensity' => $this->heatmapIntensity($totalSec),
+                        'color' => $this->heatmapColor($totalSec),
+                    ];
+                })
                 ->toArray();
         }
 
-        return view('admin.analytics', compact('totalProjects', 'completedTasks', 'activeTasks', 'teamMembers', 'teams', 'projects', 'selectedProjectId', 'heatmap', 'timeline'));
+        return view('admin.analytics', compact(
+            'totalProjects', 
+            'completedTasks', 
+            'activeTasks', 
+            'teamMembers', 
+            'teams', 
+            'projects', 
+            'selectedProjectId', 
+            'heatmap', 
+            'timeline', 
+            'playbackTasks', 
+            'selectedProjectColumns'
+        ));
     }
 
     protected function heatmapIntensity(int $seconds): string
     {
-        if ($seconds >= 43200) {
+        if ($seconds >= 172800) { // 48 hours
             return 'critical';
         }
 
-        if ($seconds >= 14400) {
+        if ($seconds >= 86400) { // 24 hours
             return 'warning';
         }
 
@@ -369,14 +484,18 @@ class DashboardController extends Controller
     protected function heatmapColor(int $seconds): string
     {
         return match ($this->heatmapIntensity($seconds)) {
-            'critical' => 'bg-red-500/20 ring-red-500/40 text-red-700',
-            'warning' => 'bg-orange-400/20 ring-orange-400/35 text-orange-700',
-            default => 'bg-emerald-400/15 ring-emerald-500/20 text-emerald-700',
+            'critical' => 'bg-rose-50 border-rose-200 dark:bg-rose-950/20 dark:border-rose-900/30 text-rose-800 dark:text-rose-300',
+            'warning' => 'bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/30 text-amber-800 dark:text-amber-300',
+            default => 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-900/30 text-emerald-800 dark:text-emerald-300',
         };
     }
 
     protected function formatDuration(int $seconds): string
     {
+        if ($seconds <= 0) {
+            return '0 seconds';
+        }
+
         if ($seconds < 60) {
             return $seconds === 1 ? '1 second' : "{$seconds} seconds";
         }
