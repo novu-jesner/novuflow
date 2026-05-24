@@ -143,14 +143,18 @@ class CalendarController extends Controller
                 'priority' => $task->priority,
                 'project_name' => $task->project ? $task->project->name : 'No Project',
                 'project_id' => $task->project_id,
-                'can_edit' => $user->isAdmin() ||
-                              ($task->project && $task->project->created_by === $user->id) ||
-                              ($task->project && $task->project->team && $user->isTeamLeader() && $task->project->team->leader_id === $user->id) ||
-                              $task->assignees->contains('id', $user->id)
+                'can_edit' => $this->canEditCalendarTask($user, $task)
             ];
         });
 
         return response()->json($tasks);
+    }
+
+    private function canEditCalendarTask($user, Task $task)
+    {
+        return ($task->project && $task->project->created_by === $user->id) ||
+               ($task->project && $task->project->team && $user->isTeamLeader() && $task->project->team->leader_id === $user->id) ||
+               $task->assignees->contains('id', $user->id);
     }
 
     public function updateDueDate(Request $request, $id)
@@ -159,10 +163,7 @@ class CalendarController extends Controller
         $user = Auth::user();
 
         // Check if user has permission to update this task
-        $canEdit = $user->isAdmin() ||
-                   ($task->project && $task->project->created_by === $user->id) ||
-                   ($task->project && $task->project->team && $user->isTeamLeader() && $task->project->team->leader_id === $user->id) ||
-                   $task->assignees->contains('id', $user->id);
+        $canEdit = $this->canEditCalendarTask($user, $task);
 
         if (!$canEdit) {
             return response()->json(['success' => false, 'message' => 'Unauthorized to reschedule this task.'], 403);
