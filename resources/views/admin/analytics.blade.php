@@ -2,7 +2,7 @@
 
 @section('dashboard-content')
 <div class="space-y-6" x-data='{
-        activeTab: "overview",
+        activeTab: "{{ $activeTab }}",
         selectedProject: "{{ $selectedProjectId }}",
         heatmap: @json($heatmap),
         timeline: @json($timeline),
@@ -12,6 +12,14 @@
         playing: false,
         interval: null,
         speed: 1000,
+        loading: false,
+        init() {
+            this.$watch("activeTab", (val) => {
+                const url = new URL(window.location.href);
+                url.searchParams.set("tab", val);
+                window.history.replaceState(null, "", url.toString());
+            });
+        },
         play() {
             if (!this.timeline.length) return;
             if (this.playing) return;
@@ -136,6 +144,17 @@
             return durationMs > 172800 * 1000; // > 48 hours in ms
         }
     }'>
+    <!-- Loading overlay -->
+    <div x-show="loading" class="fixed inset-0 z-[60] flex items-center justify-center bg-background/60 backdrop-blur-xs transition-opacity duration-300" style="display: none;">
+        <div class="flex flex-col items-center gap-3 bg-card border border-border p-6 rounded-2xl shadow-2xl">
+            <svg class="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="text-sm font-semibold text-foreground">Loading Analytics...</span>
+        </div>
+    </div>
+
     <!-- Header -->
     <div>
         <h1 class="text-3xl font-semibold text-foreground">Analytics</h1>
@@ -412,13 +431,20 @@
                     </h3>
                     <p class="text-xs text-muted-foreground mt-1">Identify board bottlenecks, inspect detailed task histories, and replay task migration step-by-step.</p>
                 </div>
-                <form method="GET" action="{{ route('admin.analytics') }}" class="flex items-center gap-3">
-                    <select name="project_id" class="rounded-lg border border-border bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" onchange="this.form.submit()">
+                <form method="GET" action="{{ route('admin.analytics') }}" class="flex items-center gap-3" @submit="loading = true">
+                    <input type="hidden" name="tab" :value="activeTab">
+                    <select name="project_id" class="rounded-lg border border-border bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" @change="$el.form.requestSubmit()">
                         @foreach($projects as $project)
                             <option value="{{ $project->id }}" @selected($project->id == $selectedProjectId)>{{ $project->name }}</option>
                         @endforeach
                     </select>
-                    <button type="submit" class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/95 shadow-md">Refresh</button>
+                    <button type="submit" class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/95 shadow-md flex items-center gap-2">
+                        <svg x-show="loading" class="animate-spin h-4 w-4 text-primary-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" style="display: none;">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span x-text="loading ? 'Refreshing...' : 'Refresh'"></span>
+                    </button>
                 </form>
             </div>
 
