@@ -59,7 +59,28 @@ class AnalyticsTest extends TestCase
             'heatmap',
             'timeline',
             'playbackTasks',
-            'selectedProjectColumns'
+            'selectedProjectColumns',
+            'activeTab'
         ]);
+    }
+
+    public function test_admin_analytics_preserves_active_tab_param()
+    {
+        $admin = User::factory()->create([
+            'role' => 'Admin'
+        ]);
+
+        $project = Project::factory()->create(['created_by' => $admin->id]);
+        $project->columns()->create(['name' => 'To Do', 'order' => 0]);
+
+        // Test with tab=kanban
+        $response = $this->actingAs($admin)->get(route('admin.analytics', ['tab' => 'kanban']));
+        $response->assertStatus(200);
+        $response->assertViewHas('activeTab', 'kanban');
+
+        // Test with invalid tab name to verify fallback to 'overview'
+        $response = $this->actingAs($admin)->get(route('admin.analytics', ['tab' => 'nonexistent_tab']));
+        $response->assertStatus(200);
+        $response->assertViewHas('activeTab', 'overview');
     }
 }

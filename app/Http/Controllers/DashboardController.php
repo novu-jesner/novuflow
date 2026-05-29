@@ -277,6 +277,11 @@ class DashboardController extends Controller
 
     public function adminAnalytics(Request $request)
     {
+        $activeTab = $request->input('tab', 'overview');
+        if (!in_array($activeTab, ['overview', 'tasks', 'teams', 'projects', 'kanban'])) {
+            $activeTab = 'overview';
+        }
+
         $totalProjects = Project::count();
         $completedTasks = Task::where('status', 'Completed')->count();
         $activeTasks = Task::whereIn('status', ['To Do', 'In Progress'])->count();
@@ -464,7 +469,8 @@ class DashboardController extends Controller
             'heatmap', 
             'timeline', 
             'playbackTasks', 
-            'selectedProjectColumns'
+            'selectedProjectColumns',
+            'activeTab'
         ));
     }
 
